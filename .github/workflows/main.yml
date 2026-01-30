@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,9 +28,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: Run IPTV Hunter script
+      - name: Create IPTV Hunter script
         run: |
-          python3 - << 'PYSCRIPT'
+          cat > hunter.py << 'ENDSCRIPT'
           import requests
           import re
           import json
@@ -57,7 +57,7 @@ jobs:
                   
                   print("Found", len(urls), "URLs")
               except Exception as e:
-                  print("Search error:", str(e))
+                  print("Search error:", e)
               
               return list(set(urls))[:30]
 
@@ -77,13 +77,13 @@ jobs:
                       return []
                   
                   channels = []
-                  lines = content.splitlines()
-                  current = None
+                  lines = content.split("\n")
+                  current = {}
                   
                   for line in lines:
                       line = line.strip()
                       if line.startswith("#EXTINF:"):
-                          name = line.split(",")[-1].strip() if "," in line else "Unknown"
+                          name = line.split(",")[-1] if "," in line else "Unknown"
                           country = "INT"
                           low = line.lower()
                           if any(x in low for x in ["ru", "russia", "россия"]): country = "RU"
@@ -97,25 +97,23 @@ jobs:
                           current["url"] = line
                           if check_stream(line):
                               channels.append(current)
-                          current = None
+                          current = {}
                   
                   return channels
               except Exception as e:
-                  print("Parse error for", url, ":", str(e))
+                  print("Parse error:", e)
                   return []
 
-          # ──────────────── main ────────────────
           urls = search_github()
           all_channels = []
 
           for url in urls:
-              print("Processing:", url[:70] + "..." if len(url) > 70 else url)
+              print("Processing:", url[:50])
               ch = parse_m3u(url)
               if len(ch) > 2:
                   print("  Valid channels:", len(ch))
                   all_channels.extend(ch)
 
-          # deduplicate
           seen = set()
           unique = []
           for ch in all_channels:
@@ -125,166 +123,137 @@ jobs:
 
           print("Total unique channels:", len(unique))
 
-          # group by country
           by_country = {}
           for ch in unique:
               c = ch.get("country", "INT")
-              by_country.setdefault(c, []).append(ch)
+              if c not in by_country:
+                  by_country[c] = []
+              by_country[c].append(ch)
 
           os.makedirs("playlists", exist_ok=True)
 
           for country, channels in by_country.items():
-              filename = f"playlists/iptv_{country.lower()}.m3u"
+              filename = "playlists/iptv_" + country.lower() + ".m3u"
               with open(filename, "w", encoding="utf-8") as f:
                   f.write("#EXTM3U\n")
                   for ch in channels:
-                      f.write(f"#EXTINF:-1,{ch['name']}\n")
-                      f.write(f"{ch['url']}\n")
+                      f.write("#EXTINF:-1," + ch["name"] + "\n")
+                      f.write(ch["url"] + "\n")
               print("Saved:", filename, "-", len(channels), "channels")
 
           total = len(unique)
-          now = datetime.utcnow().strftime("%d.%m.%Y %H:%M")
-
-          # index.html
-          index_html = """<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IPTV Aggregator</title>
-<style>
-body {margin:0;padding:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;color:white;}
-.container {max-width:900px;margin:0 auto;background:rgba(255,255,255,0.95);padding:30px;border-radius:20px;color:#333;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);}
-h1 {color:#667eea;margin-bottom:10px;}
-.stats {font-size:24px;margin:20px 0;color:#764ba2;font-weight:bold;}
-.iframe-box {width:100%;height:400px;border:3px solid #667eea;border-radius:10px;margin:20px 0;background:#f5f5f5;}
-.btn {display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;text-decoration:none;border-radius:25px;font-weight:bold;margin-top:20px;transition:transform 0.2s;}
-.btn:hover {transform:scale(1.05);}
-.update {margin-top:20px;color:#999;font-size:14px;}
-</style>
-</head>
-<body>
-<div class="container">
-<h1>🌍 IPTV Aggregator</h1>
-<div class="stats">📺 """ + str(total) + """ каналов | 🌐 """ + str(len(by_country)) + """ стран</div>
-<iframe class="iframe-box" src="full.html" frameborder="0"></iframe>
-<br>
-<a href="full.html" class="btn">🔗 Открыть полную версию сайта</a>
-<div class="update">Обновлено: """ + now + """ UTC | GitHub Actions</div>
-</div>
-</body>
-</html>"""
+          now = datetime.now().strftime("%d.%m.%Y %H:%M")
 
           with open("index.html", "w", encoding="utf-8") as f:
-              f.write(index_html)
-
-          # full.html
-          full_html = """<!DOCTYPE html>
+              f.write("""<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Полный каталог IPTV</title>
+<title>IPTV Aggregator</title>
 <style>
-body {margin:0;padding:20px;font-family:Arial;background:#1a1a2e;color:white;}
-.container {max-width:1200px;margin:0 auto;}
-.back {display:inline-block;margin-bottom:20px;color:#64ffda;text-decoration:none;}
-.grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
-.card {background:#16213e;padding:20px;border-radius:15px;border:1px solid #0f3460;}
-.card h2 {margin-top:0;color:#e94560;}
-.count {font-size:32px;color:#64ffda;font-weight:bold;}
-a.download {display:inline-block;margin-top:15px;padding:10px 20px;background:#e94560;color:white;text-decoration:none;border-radius:20px;}
-.info {margin-top:40px;padding:30px;background:#16213e;border-radius:15px;line-height:1.8;}
+body{margin:0;padding:20px;font-family:Arial;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:white}
+.container{max-width:900px;margin:0 auto;background:rgba(255,255,255,0.95);padding:30px;border-radius:20px;color:#333;text-align:center}
+h1{color:#667eea}.stats{font-size:24px;margin:20px 0;color:#764ba2;font-weight:bold}
+.iframe-box{width:100%;height:400px;border:3px solid #667eea;border-radius:10px;margin:20px 0;background:#f5f5f5}
+.btn{display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-decoration:none;border-radius:25px;font-weight:bold;margin-top:20px}
+.update{margin-top:20px;color:#999;font-size:14px}
 </style>
 </head>
 <body>
 <div class="container">
-<a href="index.html" class="back">← Назад на главную</a>
-<h1>📺 Полный каталог IPTV</h1>
-<div class="grid">"""
-
-          for country in sorted(by_country):
-              count = len(by_country[country])
-              full_html += f"""
-  <div class="card">
-  <h2>{country}</h2>
-  <div class="count">{count}</div>
-  <p>каналов</p>
-  <a href="playlists/iptv_{country.lower()}.m3u" class="download" download>Скачать M3U</a>
-  </div>"""
-
-          full_html += """
+<h1>IPTV Aggregator</h1>
+<div class="stats">"""+str(total)+""" channels | """+str(len(by_country))+""" countries</div>
+<iframe class="iframe-box" src="full.html"></iframe>
+<br><a href="full.html" class="btn">Open Full Version</a>
+<div class="update">Updated: """+now+""" UTC</div>
 </div>
-<div class="info">
-<h2>📱 Как смотреть</h2>
+</body>
+</html>""")
+
+          with open("full.html", "w", encoding="utf-8") as f:
+              f.write("""<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>IPTV Full</title>
+<style>
+body{margin:0;padding:20px;font-family:Arial;background:#1a1a2e;color:white}
+.container{max-width:1200px;margin:0 auto}
+.back{display:inline-block;margin-bottom:20px;color:#64ffda;text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.card{background:#16213e;padding:20px;border-radius:15px;border:1px solid #0f3460}
+.count{font-size:32px;color:#64ffda;font-weight:bold}
+a.download{display:inline-block;margin-top:15px;padding:10px 20px;background:#e94560;color:white;text-decoration:none;border-radius:20px}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="back">Back</a>
+<h1>IPTV Catalog</h1>
+<div class="grid">""")
+              
+              for country in sorted(by_country.keys()):
+                  count = len(by_country[country])
+                  f.write('<div class="card"><h2>'+country+'</h2><div class="count">'+str(count)+'</div><p>channels</p><a href="playlists/iptv_'+country.lower()+'.m3u" class="download" download>Download M3U</a></div>')
+              
+              f.write("""</div>
+<div style="margin-top:40px;padding:30px;background:#16213e;border-radius:15px">
+<h2>How to watch</h2>
 <ul>
-<li><b>VLC:</b> Медиа → Открыть файл → выбрать M3U</li>
-<li><b>Kodi:</b> PVR IPTV Simple Client → Загрузить M3U</li>
-<li><b>Android:</b> IPTV Pro, Perfect Player, Televizo</li>
-<li><b>iOS:</b> VLC, nPlayer, IPTV Player</li>
-<li><b>Smart TV:</b> OTT Player, SS IPTV</li>
+<li>VLC: Media -> Open File</li>
+<li>Android: IPTV Pro, Perfect Player</li>
+<li>iOS: VLC</li>
+<li>Smart TV: OTT Player</li>
 </ul>
-<p><b>Обновление:</b> """ + now + """ UTC</p>
+<p>Updated: """+now+""" UTC</p>
 </div>
 </div>
 </body>
-</html>"""
+</html>""")
 
-          with open("full.html", "w", encoding="utf-8") as f:
-              f.write(full_html)
-
-          # meta
-          meta = {
-              "total": total,
-              "countries": {k: len(v) for k, v in by_country.items()},
-              "updated": now
-          }
-          with open("meta.json", "w", encoding="utf-8") as f:
-              json.dump(meta, f, ensure_ascii=False, indent=2)
+          meta = {"total": total, "countries": len(by_country), "updated": now}
+          with open("meta.json", "w") as f:
+              json.dump(meta, f)
 
           print("=== Completed ===")
-          PYSCRIPT
+          ENDSCRIPT
+
+      - name: Run IPTV Hunter
+        run: python hunter.py
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Create Release
+      - name: Delete old release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete latest -y || true
+        continue-on-error: true
+
+      - name: Create new release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           DATE=$(date +%d.%m.%Y)
           TOTAL=$(python3 -c "import json; print(json.load(open('meta.json'))['total'])")
-          COUNTRIES=$(python3 -c "import json; print(len(json.load(open('meta.json'))['countries']))")
-          
-          gh release delete latest -y --fail-silently 2>/dev/null || true
-          
-          gh release create latest \
-            --title "IPTV $DATE" \
-            --notes "📺 Каналов: $TOTAL
-          🌍 Стран: $COUNTRIES
-          📅 Обновлено: $DATE
-          
-          ## 📥 Файлы
-          Выберите файл вашей страны в Assets ниже.
-          
-          ## 🌐 Онлайн
-          https://\( {{ github.repository_owner }}.github.io/ \){{ github.event.repository.name }}/
-          
-          ## Просмотр
-          • VLC — Медиа → Открыть файл
-          • Android — IPTV Pro / Perfect Player / Televizo
-          • iOS — VLC / nPlayer
-          • Smart TV — OTT Player / SS IPTV" \
-            --latest || echo "Release already exists or failed"
-          
+          COUNTRIES=$(python3 -c "import json; print(json.load(open('meta.json'))['countries'])")
+          gh release create latest --title "IPTV $DATE" --notes "Channels: $TOTAL | Countries: $COUNTRIES | Date: $DATE" --latest
+
+      - name: Upload files to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           for file in playlists/*.m3u; do
-            [ -f "$file" ] && gh release upload latest "$file" --clobber || true
+            if [ -f "$file" ]; then
+              gh release upload latest "$file" --clobber
+            fi
           done
