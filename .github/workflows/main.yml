@@ -30,7 +30,7 @@ jobs:
 
       - name: Create IPTV Hunter script
         run: |
-          cat > hunter.py << 'ENDSCRIPT'
+          cat << 'ENDSCRIPT' > hunter.py
           import requests
           import re
           import json
@@ -145,45 +145,46 @@ jobs:
           now = datetime.now().strftime("%d.%m.%Y %H:%M")
 
           with open("index.html", "w", encoding="utf-8") as f:
-              f.write("""<!DOCTYPE html>
+              f.write(f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>IPTV Aggregator</title>
+<title>IPTV Aggregator — Live Auto‑Updated M3U</title>
 <style>
-body{margin:0;padding:20px;font-family:Arial;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:white}
-.container{max-width:900px;margin:0 auto;background:rgba(255,255,255,0.95);padding:30px;border-radius:20px;color:#333;text-align:center}
-h1{color:#667eea}.stats{font-size:24px;margin:20px 0;color:#764ba2;font-weight:bold}
-.iframe-box{width:100%;height:400px;border:3px solid #667eea;border-radius:10px;margin:20px 0;background:#f5f5f5}
-.btn{display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-decoration:none;border-radius:25px;font-weight:bold;margin-top:20px}
-.update{margin-top:20px;color:#999;font-size:14px}
+body{{margin:0;padding:20px;font-family:Arial;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:white}}
+.container{{max-width:900px;margin:0 auto;background:rgba(255,255,255,0.95);padding:30px;border-radius:20px;color:#333;text-align:center}}
+h1{{color:#667eea}}
+.stats{{font-size:24px;margin:20px 0;color:#764ba2;font-weight:bold}}
+.iframe-box{{width:100%;height:400px;border:3px solid #667eea;border-radius:10px;margin:20px 0;background:#f5f5f5}}
+.btn{{display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-decoration:none;border-radius:25px;font-weight:bold;margin-top:20px}}
+.update{{margin-top:20px;color:#999;font-size:14px}}
 </style>
 </head>
 <body>
 <div class="container">
 <h1>IPTV Aggregator</h1>
-<div class="stats">"""+str(total)+""" channels | """+str(len(by_country))+""" countries</div>
+<div class="stats">{total} channels | {len(by_country)} countries</div>
 <iframe class="iframe-box" src="full.html"></iframe>
 <br><a href="full.html" class="btn">Open Full Version</a>
-<div class="update">Updated: """+now+""" UTC</div>
+<div class="update">Updated: {now} UTC</div>
 </div>
 </body>
 </html>""")
 
           with open("full.html", "w", encoding="utf-8") as f:
-              f.write("""<!DOCTYPE html>
+              f.write(f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>IPTV Full</title>
+<title>IPTV Full Catalog</title>
 <style>
-body{margin:0;padding:20px;font-family:Arial;background:#1a1a2e;color:white}
-.container{max-width:1200px;margin:0 auto}
-.back{display:inline-block;margin-bottom:20px;color:#64ffda;text-decoration:none}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
-.card{background:#16213e;padding:20px;border-radius:15px;border:1px solid #0f3460}
-.count{font-size:32px;color:#64ffda;font-weight:bold}
-a.download{display:inline-block;margin-top:15px;padding:10px 20px;background:#e94560;color:white;text-decoration:none;border-radius:20px}
+body{{margin:0;padding:20px;font-family:Arial;background:#1a1a2e;color:white}}
+.container{{max-width:1200px;margin:0 auto}}
+.back{{display:inline-block;margin-bottom:20px;color:#64ffda;text-decoration:none}}
+.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}}
+.card{{background:#16213e;padding:20px;border-radius:15px;border:1px solid #0f3460}}
+.count{{font-size:32px;color:#64ffda;font-weight:bold}}
+a.download{{display:inline-block;margin-top:15px;padding:10px 20px;background:#e94560;color:white;text-decoration:none;border-radius:20px}}
 </style>
 </head>
 <body>
@@ -191,21 +192,21 @@ a.download{display:inline-block;margin-top:15px;padding:10px 20px;background:#e9
 <a href="index.html" class="back">Back</a>
 <h1>IPTV Catalog</h1>
 <div class="grid">""")
-              
+
               for country in sorted(by_country.keys()):
                   count = len(by_country[country])
-                  f.write('<div class="card"><h2>'+country+'</h2><div class="count">'+str(count)+'</div><p>channels</p><a href="playlists/iptv_'+country.lower()+'.m3u" class="download" download>Download M3U</a></div>')
-              
-              f.write("""</div>
+                  f.write(f'<div class="card"><h2>{country}</h2><div class="count">{count}</div><p>channels</p><a href="playlists/iptv_{country.lower()}.m3u" class="download" download>Download M3U</a></div>')
+
+              f.write(f"""</div>
 <div style="margin-top:40px;padding:30px;background:#16213e;border-radius:15px">
 <h2>How to watch</h2>
 <ul>
-<li>VLC: Media -> Open File</li>
-<li>Android: IPTV Pro, Perfect Player</li>
-<li>iOS: VLC</li>
-<li>Smart TV: OTT Player</li>
+ <li>VLC: Media → Open File</li>
+ <li>Android: IPTV Pro, Perfect Player</li>
+ <li>iOS: VLC</li>
+ <li>Smart TV: OTT Player</li>
 </ul>
-<p>Updated: """+now+""" UTC</p>
+<p>Updated: {now} UTC</p>
 </div>
 </div>
 </body>
