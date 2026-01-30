@@ -1,0 +1,256 @@
+name: IPTV Hunter
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packages
+        run: |
+          pip install requests beautifulsoup4 aiohttp fake-useragent
+
+      - name: Create hunter script
+        run: |
+          cat > hunter.py << 'PYTHON_EOF'
+          import requests
+          import re
+          import json
+          import os
+          from datetime import datetime
+          from bs4 import BeautifulSoup
+          
+          print("=== IPTV Hunter Start ===")
+          
+          # Простой поиск через DuckDuckGo
+          def search_github():
+              urls = []
+              queries = [
+                  'site:raw.githubusercontent.com iptv m3u',
+                  'site:github.com iptv playlist.m3u'
+              ]
+              
+              for q in queries:
+                  try:
+                      url = f"https://html.duckduckgo.com/html/?q={q.replace(' ', '+')}"
+                      r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+                      soup = BeautifulSoup(r.text, 'html.parser')
+                      
+                      for a in soup.find_all('a', href=True):
+                          href = a['href']
+                          if 'raw.githubusercontent.com' in href and '.m3u' in href:
+                              urls.append(href)
+                          elif 'github.com' in href and 'blob' in href and '.m3u' in href:
+                              # Convert to raw
+                              href = href.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/')
+                              urls.append(href)
+                      print(f"Found {len(urls)} URLs for query: {q}")
+                  except Exception as e:
+                      print(f"Error: {e}")
+              
+              return list(set(urls))[:50]
+
+          def check_stream(url):
+              try:
+                  r = requests.get(url, timeout=10, headers={'User-Agent': 'VLC/3.0.18'})
+                  if r.status_code == 200 and len(r.content) > 0:
+                      return True
+              except:
+                  pass
+              return False
+
+          def parse_playlist(url):
+              try:
+                  r = requests.get(url, timeout=20, headers={'User-Agent': 'Mozilla/5.0'})
+                  content = r.text
+                  
+                  if '#EXTM3U' not in content:
+                      return []
+                  
+                  channels = []
+                  lines = content.split('\n')
+                  current = {}
+                  
+                  for line in lines:
+                      line = line.strip()
+                      if line.startswith('#EXTINF:'):
+                          name = line.split(',')[-1] if ',' in line else 'Unknown'
+                          country = 'INT'
+                          if any(x in line.lower() for x in ['ru', 'russia']): country = 'RU'
+                          elif any(x in line.lower() for x in ['us', 'usa']): country = 'US'
+                          elif any(x in line.lower() for x in ['uk', 'british']): country = 'UK'
+                          elif any(x in line.lower() for x in ['de', 'germany']): country = 'DE'
+                          
+                          current = {'name': name, 'country': country}
+                      elif line.startswith('http') and current:
+                          current['url'] = line
+                          if check_stream(line):
+                              channels.append(current)
+                          current = {}
+                  
+                  return channels
+              except Exception as e:
+                  print(f"Parse error: {e}")
+                  return []
+
+          # Main
+          print("Searching...")
+          urls = search_github()
+          print(f"Total URLs: {len(urls)}")
+
+          all_channels = []
+          for url in urls:
+              print(f"Processing: {url[:60]}...")
+              ch = parse_playlist(url)
+              if len(ch) > 3:
+                  print(f"  Good playlist: {len(ch)} channels")
+                  all_channels.extend(ch)
+
+          # Deduplicate
+          seen = set()
+          unique = []
+          for ch in all_channels:
+              if ch['url'] not in seen:
+                  seen.add(ch['url'])
+                  unique.append(ch)
+
+          print(f"Total unique: {len(unique)}")
+
+          # Group by country
+          by_country = {}
+          for ch in unique:
+              c = ch.get('country', 'INT')
+              if c not in by_country:
+                  by_country[c] = []
+              by_country[c].append(ch)
+
+          # Save playlists
+          os.makedirs('playlists', exist_ok=True)
+          for country, channels in by_country.items():
+              fname = f'playlists/iptv_{country.lower()}.m3u'
+              with open(fname, 'w', encoding='utf-8') as f:
+                  f.write('#EXTM3U\n')
+                  for ch in channels:
+                      f.write(f'#EXTINF:-1,{ch["name"]}\n{ch["url"]}\n')
+              print(f"Saved {fname}: {len(channels)} channels")
+
+          # Create index.html (main page with iframe)
+          total = len(unique)
+          countries = len(by_country)
+          
+          html_main = f'''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>IPTV Aggregator</title>
+<style>
+body {{ margin: 0; padding: 20px; font-family: Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; }}
+.container {{ max-width: 900px; margin: 0 auto; background: rgba(255,255,255,0.95); padding: 30px; border-radius: 20px; color: #333; }}
+.iframe-box {{ width: 100%; height: 400px; border: 3px solid #667eea; border-radius: 10px; margin: 20px 0; background: #f0f0f0; }}
+.btn {{ display: inline-block; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 25px; font-weight: bold; margin-top: 20px; }}
+.stats {{ font-size: 24px; margin: 20px 0; }}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🌍 IPTV Aggregator</h1>
+<div class="stats">📺 {total} каналов | 🌐 {countries} стран</div>
+<iframe class="iframe-box" src="full.html"></iframe>
+<br>
+<a href="full.html" class="btn">🔗 Открыть полную версию</a>
+<p style="margin-top: 20px; color: #666; font-size: 12px;">Обновлено: {datetime.now().strftime("%d.%m.%Y %H:%M")}</p>
+</div>
+</body>
+</html>'''
+
+          with open('index.html', 'w', encoding='utf-8') as f:
+              f.write(html_main)
+
+          # Create full.html (full version)
+          html_full = '''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>IPTV Full</title>
+<style>
+body {{ margin: 0; padding: 20px; font-family: Arial; background: #1e3c72; color: white; }}
+.container {{ max-width: 1200px; margin: 0 auto; }}
+.card {{ background: rgba(255,255,255,0.1); padding: 20px; margin: 10px; border-radius: 10px; display: inline-block; min-width: 250px; }}
+a {{ color: #64ffda; text-decoration: none; font-weight: bold; }}
+.back {{ margin-bottom: 20px; display: inline-block; }}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html" class="back">← Назад</a>
+<h1>Полный каталог IPTV</h1>'''
+
+          for country, channels in sorted(by_country.items(), key=lambda x: -len(x[1])):
+              html_full += f'<div class="card"><h2>{country}</h2><p>{len(channels)} каналов</p>'
+              html_full += f'<a href="playlists/iptv_{country.lower()}.m3u" download>Скачать M3U</a></div>'
+
+          html_full += '''<div style="margin-top: 40px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+<h2>📱 Как смотреть</h2>
+<ul style="text-align: left; line-height: 2;">
+<li><b>VLC:</b> Медиа → Открыть файл → M3U</li>
+<li><b>Kodi:</b> PVR IPTV Simple Client</li>
+<li><b>Android:</b> IPTV Pro, Perfect Player</li>
+<li><b>iOS:</b> VLC или IPTV приложения</li>
+</ul>
+</div></div></body></html>'''
+
+          with open('full.html', 'w', encoding='utf-8') as f:
+              f.write(html_full)
+
+          # Save metadata
+          with open('meta.json', 'w') as f:
+              json.dump({'total': total, 'countries': {k: len(v) for k, v in by_country.items()}}, f)
+
+          print("Done!")
+          PYTHON_EOF
+
+      - name: Run hunter
+        run: python hunter.py
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%d.%m.%Y)
+          TOTAL=$(python3 -c "import json; print(json.load(open('meta.json'))['total'])")
+          
+          gh release delete latest -y || true
+          gh release create latest --title "IPTV $DATE" --notes "Каналов: $TOTAL" --latest
+          
+          for f in playlists/*.m3u; do
+            gh release upload latest "$f" --clobber || true
+          done
