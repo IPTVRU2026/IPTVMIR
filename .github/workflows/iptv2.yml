@@ -10,17 +10,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Generate README
+      - name: Manual Checkout and Update
         run: |
+          # Клонируем репозиторий вручную без сторонних экшенов
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
+          
+          # Формируем README
           echo "# 📺 IPTV MIR 2026" > README.md
           echo "" >> README.md
           echo "### Прямой эфир доступен ниже:" >> README.md
           echo "" >> README.md
           
-          # Вставка плеера через iframe
+          # Вставка плеера
           echo '<iframe src="https://iptvru2026.github.io/IPTVMIR/full.html" width="100%" height="600px" frameborder="0"></iframe>' >> README.md
           
           echo "" >> README.md
@@ -28,12 +29,11 @@ jobs:
           echo "" >> README.md
           echo "---" >> README.md
           echo "### ℹ️ Краткая информация о релизе" >> README.md
-          echo "Данный релиз **IPTV MIR** включает в себя обновленный список каналов, поддержку адаптивного плеера и оптимизацию для мобильных устройств. Все потоки обновляются в реальном времени." >> README.md
+          echo "Данный релиз **IPTV MIR** включает в себя обновленный список каналов, поддержку адаптивного плеера и оптимизацию для мобильных устройств." >> README.md
 
-      - name: Commit and Push
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Настройка и пуш
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "Update README with latest player" || exit 0
-          git push
+          git commit -m "Update README without external actions" || exit 0
+          git push origin main
