@@ -14,30 +14,32 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
           
-          # 1. Заголовок
+          # 1. Красивое название
           echo "# 📺 IPTV MIR 2026" > README.md
           echo "" >> README.md
           
-          # 2. Красивое превью вместо iframe (кликабельная картинка)
-          echo "### 🎬 Плеер запущен и готов к работе" >> README.md
-          echo "[![Нажмите, чтобы открыть плеер](https://img.shields.io/badge/ЗАПУСТИТЬ_ПЛЕЕР-КЛИКНИТЕ_ЗДЕСЬ-red?style=for-the-badge&logo=youtube&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)" >> README.md
-          echo "" >> README.md
-          echo "> **Примечание:** Нажмите на кнопку выше, чтобы открыть интерактивное окно ТВ в браузере." >> README.md
+          # 2. Имитация плеера (кликабельный баннер вместо iframe)
+          echo "### 🌐 Онлайн трансляция" >> README.md
+          echo "[![Открыть IPTV Плеер](https://img.shields.io/badge/📺_ОТКРЫТЬ_ПЛЕЕР_IPTV-CLICK_TO_PLAY-blue?style=for-the-badge&logo=appletv&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)" >> README.md
           echo "" >> README.md
           
-          # 3. Краткая информация о релизе
+          # 3. Кнопка прямого перехода под «окошком»
+          echo "[![Смотреть на сайте](https://img.shields.io/badge/Перейти_на_сайт-100000?style=flat-square&logo=googlechrome&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)" >> README.md
+          echo "" >> README.md
+          
+          # 4. Информация о релизе
           echo "---" >> README.md
           echo "### ℹ️ Краткая информация о релизе IPTV" >> README.md
-          echo "Этот релиз содержит актуальную сборку плеера с оптимизированным кэшированием потоков. Все каналы IPTV MIR 2026 доступны в HD качестве без дополнительной настройки." >> README.md
+          echo "Актуальная версия **IPTV MIR**. В данном обновлении улучшена стабильность потоков, добавлена поддержка новых плейлистов и исправлено отображение на мобильных устройствах. Плеер работает на базе HTML5 и не требует установки плагинов." >> README.md
           echo "" >> README.md
 
-          # 4. Ссылка на релизы в самом низу
+          # 5. Ссылка на релизы под всем текстом
           echo "---" >> README.md
-          echo "📂 **Официальные сборки:** [Посмотреть все релизы и версии](https://github.com/${{ github.repository }}/releases)" >> README.md
+          echo "🚀 **Последние обновления и файлы:** [Ознакомиться с релизом](https://github.com/${{ github.repository }}/releases)" >> README.md
 
           # Настройка и пуш
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "Fix: Replace iframe with clickable banner" || exit 0
+          git commit -m "Update README: Added player links and release info" || exit 0
           git push origin main
