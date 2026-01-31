@@ -1,4 +1,4 @@
-name: Update README with IPTV Player
+name: Update IPTV MIR 2026
 
 on:
   push:
@@ -10,36 +10,56 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Manual Checkout and Update
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Files
         run: |
-          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
-          
-          # 1. Красивое название
+          # 1. СОЗДАЕМ INDEX.HTML (Главная страница плеера с JS)
+          # Это то, что увидит пользователь по ссылке. Здесь JS разрешен!
+          cat <<EOF > index.html
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>IPTV MIR 2026 - Player</title>
+              <style>
+                  body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+                  .loader { color: white; text-align: center; }
+                  /* Стиль для имитации окна плеера */
+                  iframe { width: 100%; height: 100vh; border: none; }
+              </style>
+          </head>
+          <body>
+              <iframe src="full.html"></iframe>
+          </body>
+          </html>
+          EOF
+
+          # 2. ОБНОВЛЯЕМ README.MD (Красивая витрина)
           echo "# 📺 IPTV MIR 2026" > README.md
           echo "" >> README.md
-          
-          # 2. Имитация плеера (кликабельный баннер вместо iframe)
-          echo "### 🌐 Онлайн трансляция" >> README.md
-          echo "[![Открыть IPTV Плеер](https://img.shields.io/badge/📺_ОТКРЫТЬ_ПЛЕЕР_IPTV-CLICK_TO_PLAY-blue?style=for-the-badge&logo=appletv&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)" >> README.md
+          echo "![Status](https://img.shields.io/badge/Статус-В_ЭФИРЕ-brightgreen?style=for-the-badge)" >> README.md
           echo "" >> README.md
-          
-          # 3. Кнопка прямого перехода под «окошком»
-          echo "[![Смотреть на сайте](https://img.shields.io/badge/Перейти_на_сайт-100000?style=flat-square&logo=googlechrome&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)" >> README.md
+          echo "### 🚀 Интерактивная веб-панель" >> README.md
+          echo "Для запуска плеера используйте кнопку ниже. Система автоматически подберет лучший сервер." >> README.md
           echo "" >> README.md
-          
-          # 4. Информация о релизе
+          echo "<a href='https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/'>" >> README.md
+          echo "  <img src='https://raw.githubusercontent.com/interactivetv/images/main/play_button.png' width='300' alt='ЗАПУСТИТЬ ПЛЕЕР' />" >> README.md
+          echo "</a>" >> README.md
+          echo "" >> README.md
+          echo "> **INFO:** Если плеер не открывается, проверьте наличие интернет-соединения. Текущая версия оптимизирована для 2026 года." >> README.md
+          echo "" >> README.md
           echo "---" >> README.md
-          echo "### ℹ️ Краткая информация о релизе IPTV" >> README.md
-          echo "Актуальная версия **IPTV MIR**. В данном обновлении улучшена стабильность потоков, добавлена поддержка новых плейлистов и исправлено отображение на мобильных устройствах. Плеер работает на базе HTML5 и не требует установки плагинов." >> README.md
-          echo "" >> README.md
+          echo "📂 [Релизы](${{ github.server_url }}/${{ github.repository }}/releases) | 🛠 [Поддержка](${{ github.server_url }}/${{ github.repository }}/issues)" >> README.md
 
-          # 5. Ссылка на релизы под всем текстом
-          echo "---" >> README.md
-          echo "🚀 **Последние обновления и файлы:** [Ознакомиться с релизом](https://github.com/${{ github.repository }}/releases)" >> README.md
-
-          # Настройка и пуш
+      - name: Commit and Push
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "Update README: Added player links and release info" || exit 0
+          git add index.html README.md
+          git commit -m "Build: Deploy Player Interface and update README" || exit 0
           git push origin main
