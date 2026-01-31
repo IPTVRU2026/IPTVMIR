@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV MIR Player</title>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <style>
+        body { background: #000; color: #0f0; font-family: sans-serif; margin: 0; }
+        .vjs-matrix { width: 100vw; height: 60vh; }
+        #ch-list { height: 40vh; overflow-y: auto; background: #111; padding: 10px; }
+        .channel { padding: 12px; border-bottom: 1px solid #222; cursor: pointer; }
+        .channel:hover { background: #222; }
+    </style>
+</head>
+<body>
+    <video id="iptv-player" class="video-js vjs-default-skin vjs-matrix" controls preload="auto"></video>
+    <div id="ch-list">Загрузка каналов...</div>
+    
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        const player = videojs('iptv-player');
+        // Читаем плейлист ПРЯМО из репозитория
+        async function init() {
+            try {
+                const res = await fetch('playlist.m3u?v=' + Date.now());
+                const text = await res.text();
+                const list = document.getElementById('ch-list');
+                list.innerHTML = '';
+                let name = '';
+                text.split('\n').forEach(line => {
+                    if (line.includes('#EXTINF:')) name = line.split(',').pop();
+                    else if (line.startsWith('http')) {
+                        const d = document.createElement('div');
+                        d.className = 'channel';
+                        d.innerText = '📺 ' + (name || 'Канал');
+                        d.onclick = () => {
+                            player.src({ src: line.trim(), type: 'application/x-mpegURL' });
+                            player.play();
+                        };
+                        list.appendChild(d);
+                    }
+                });
+            } catch (e) { document.getElementById('ch-list').innerText = 'Ошибка плейлиста'; }
+        }
+        init();
+    </script>
+</body>
+</html>
