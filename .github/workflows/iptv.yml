@@ -1,0 +1,68 @@
+name: IPTV Hunter
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run IPTV Hunter
+        run: python iptv_hunter.py
+
+      - name: Create ZIP archive
+        run: |
+          zip -r iptv-playlists.zip playlists/
+          ls -lh iptv-playlists.zip
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TOTAL=$(python3 -c "import json; print(json.load(open('metadata.json'))['total'])")
+          DATE=$(date +%d.%m.%Y)
+          
+          # Delete old release
+          gh release delete latest -y || true
+          
+          # Create new
+          gh release create latest \
+            --title "IPTV $DATE - $TOTAL channels" \
+            --notes "📺 Channels: $TOTAL | 🔄 Auto-updated" \
+            --latest
+          
+          # Upload files
+          gh release upload latest iptv-playlists.zip --clobber
+          for f in playlists/*.m3u; do
+            [ -f "$f" ] && gh release upload latest "$f" --clobber
+          done
