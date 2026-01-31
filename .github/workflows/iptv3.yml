@@ -1,0 +1,94 @@
+name: Update IPTV Website
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate full.html with Playlist Support
+        run: |
+          cat <<EOF > full.html
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>IPTV Player - IPTVMIR</title>
+              <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+              <style>
+                  body { background: #121212; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+                  .container { max-width: 1000px; margin: auto; }
+                  .video-js { width: 100%; height: 450px; border-radius: 8px; background: #000; }
+                  #playlist { margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px; background: #1e1e1e; border-radius: 8px; }
+                  .channel-item { padding: 10px; background: #333; cursor: pointer; border-radius: 4px; font-size: 14px; text-align: center; transition: 0.2s; }
+                  .channel-item:hover { background: #555; }
+                  .status { margin-top: 15px; font-size: 12px; color: #777; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h2>IPTV MIR Online</h2>
+                  <video id="iptv-player" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto"></video>
+                  
+                  <h3>Список каналов:</h3>
+                  <div id="playlist">Загрузка каналов...</div>
+                  
+                  <div class="status">Обновлено: $(date -u +'%d.%m.%Y %H:%M') UTC</div>
+              </div>
+
+              <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+              <script>
+                  const player = videojs('iptv-player');
+                  const playlistUrl = 'https://iptvru2026.github.io/IPTVMIR/playlist.m3u'; // ПРОВЕРЬТЕ ИМЯ ВАШЕГО ФАЙЛА
+
+                  async function loadPlaylist() {
+                      try {
+                          const response = await fetch(playlistUrl);
+                          const data = await response.text();
+                          const lines = data.split('\n');
+                          const container = document.getElementById('playlist');
+                          container.innerHTML = '';
+
+                          let currentName = '';
+                          lines.forEach(line => {
+                              if (line.startsWith('#EXTINF:')) {
+                                  currentName = line.split(',').pop();
+                              } else if (line.startsWith('http')) {
+                                  const url = line.trim();
+                                  const btn = document.createElement('div');
+                                  btn.className = 'channel-item';
+                                  btn.innerText = currentName || 'Без названия';
+                                  btn.onclick = () => {
+                                      player.src({ src: url, type: 'application/x-mpegURL' });
+                                      player.play();
+                                  };
+                                  container.appendChild(btn);
+                              }
+                          });
+                      } catch (e) {
+                          document.getElementById('playlist').innerText = 'Ошибка загрузки плейлиста';
+                      }
+                  }
+                  loadPlaylist();
+              </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Push to Repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add full.html
+          git commit -m "Update full.html with automatic playlist loader" || echo "No changes"
+          git push
