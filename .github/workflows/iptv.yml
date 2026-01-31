@@ -31,8 +31,11 @@ jobs:
 
       - name: Create ZIP archive
         run: |
-          zip -r iptv-playlists.zip playlists/
-          ls -lh iptv-playlists.zip
+          if [ -d "playlists" ]; then
+            zip -r iptv-playlists.zip playlists/ index.html full.html metadata.json
+            echo "✅ Archive created"
+            ls -lh iptv-playlists.zip
+          fi
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
@@ -45,24 +48,64 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
 
-      - name: Create Release
+      - name: Create Release with details
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TOTAL=$(python3 -c "import json; print(json.load(open('metadata.json'))['total'])")
+          # Read metadata safely
+          if [ -f "metadata.json" ]; then
+            TOTAL=$(python3 -c "import json; data=json.load(open('metadata.json')); print(data.get('total', 0))")
+            COUNTRIES=$(python3 -c "import json; data=json.load(open('metadata.json')); print(len(data.get('countries', {})))")
+          else
+            TOTAL="0"
+            COUNTRIES="0"
+          fi
+          
           DATE=$(date +%d.%m.%Y)
           
-          # Delete old release
-          gh release delete latest -y || true
+          # Detailed release notes
+          NOTES="## 📊 Статистика сборки
+          - **Всего каналов:** $TOTAL
+          - **Количество стран:** $COUNTRIES
+          - **Дата обновления:** $DATE
           
-          # Create new
+          ## 📥 Скачать
+          - **📦 Все плейлисты (ZIP):** скачайте архив ниже
+          - **🌐 Онлайн просмотр:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          - **Отдельные M3U:** файлы по странам в списке активов
+          
+          ## 📱 Как использовать
+          1. **Скачайте** файл вашей страны (RU, US, UK и т.д.) или ZIP архив
+          2. **VLC Player:** Медиа → Открыть файл → выберите M3U (EPG загрузится автоматически)
+          3. **Android:** IPTV Pro, Perfect Player, Televizo
+          4. **iOS:** VLC, nPlayer
+          5. **Smart TV:** OTT Player, SS IPTV
+          
+          ## ⚙️ Что включено
+          - ✅ Группы каналов (News, Sports, Movies и т.д.)
+          - ✅ EPG (Телепрограмма/расписание)
+          - ✅ Логотипы каналов (если доступны)
+          - ✅ Авто-обновление каждые 6 часов
+          
+          *Создано автоматически через GitHub Actions*"
+          
+          # Delete old release if exists
+          gh release delete latest -y 2>/dev/null || true
+          
+          # Create new release
           gh release create latest \
-            --title "IPTV $DATE - $TOTAL channels" \
-            --notes "📺 Channels: $TOTAL | 🔄 Auto-updated" \
+            --title "🌍 IPTV Update $DATE - $TOTAL channels" \
+            --notes "$NOTES" \
             --latest
           
-          # Upload files
-          gh release upload latest iptv-playlists.zip --clobber
+          # Upload ZIP
+          if [ -f "iptv-playlists.zip" ]; then
+            gh release upload latest iptv-playlists.zip --clobber
+          fi
+          
+          # Upload individual M3U files
           for f in playlists/*.m3u; do
-            [ -f "$f" ] && gh release upload latest "$f" --clobber
+            if [ -f "$f" ]; then
+              gh release upload latest "$f" --clobber || true
+            fi
           done
