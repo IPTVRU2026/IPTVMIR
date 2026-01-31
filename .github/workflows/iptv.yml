@@ -27,14 +27,27 @@ jobs:
         run: pip install requests beautifulsoup4
 
       - name: Run IPTV Hunter
-        run: python iptv_hunter.py
+        id: hunter
+        run: |
+          python iptv_hunter.py
+          if [ ! -f "metadata.json" ]; then
+            echo "❌ Error: metadata.json not created!"
+            exit 1
+          fi
+          if [ ! -d "playlists" ]; then
+            echo "❌ Error: playlists folder not created!"
+            exit 1
+          fi
 
       - name: Create ZIP archive
         run: |
-          if [ -d "playlists" ]; then
+          if [ -d "playlists" ] && [ "$(ls -A playlists)" ]; then
             zip -r iptv-playlists.zip playlists/ index.html full.html metadata.json
-            echo "✅ Archive created"
+            echo "✅ Archive created with $(ls playlists | wc -l) playlists"
             ls -lh iptv-playlists.zip
+          else
+            echo "❌ No playlists to archive!"
+            exit 1
           fi
 
       - name: Setup GitHub Pages
@@ -46,37 +59,42 @@ jobs:
           path: '.'
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Create Release with details
+      - name: Create Release
+        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Read metadata safely
-          if [ -f "metadata.json" ]; then
-            TOTAL=$(python3 -c "import json; data=json.load(open('metadata.json')); print(data.get('total', 0))")
-            COUNTRIES=$(python3 -c "import json; data=json.load(open('metadata.json')); print(len(data.get('countries', {})))")
-          else
-            TOTAL="0"
-            COUNTRIES="0"
-          fi
-          
+          TOTAL=$(python3 -c "import json; data=json.load(open('metadata.json')); print(data.get('total', 0))")
+          COUNTRIES=$(python3 -c "import json; data=json.load(open('metadata.json')); print(len(data.get('countries', {})))")
           DATE=$(date +%d.%m.%Y)
           
-          # Detailed release notes
-          NOTES="## 📊 Статистика сборки
-          - **Всего каналов:** $TOTAL
-          - **Количество стран:** $COUNTRIES
-          - **Дата обновления:** $DATE
+          echo "Creating release with $TOTAL channels from $COUNTRIES countries"
+          
+          # Delete old release
+          gh release delete latest -y 2>/dev/null || echo "No previous release"
+          
+          # Create release with proper formatting
+          gh release create latest \
+            --title "🌍 IPTV Update $DATE - $TOTAL channels" \
+            --notes "$(cat << 'EOF'
+          ## 📊 Статистика сборки
+          - **Всего каналов:** '${TOTAL}'
+          - **Количество стран:** '${COUNTRIES}'
+          - **Дата обновления:** '${DATE}'
           
           ## 📥 Скачать
-          - **📦 Все плейлисты (ZIP):** скачайте архив ниже
-          - **🌐 Онлайн просмотр:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-          - **Отдельные M3U:** файлы по странам в списке активов
+          | Файл | Описание |
+          |------|----------|
+          | 📦 [iptv-playlists.zip](https://github.com/${{ github.repository }}/releases/download/latest/iptv-playlists.zip) | Все плейлисты в архиве |
+          | 🌐 [Онлайн просмотр](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/) | Веб-интерфейс с iframe |
           
           ## 📱 Как использовать
           1. **Скачайте** файл вашей страны (RU, US, UK и т.д.) или ZIP архив
-          2. **VLC Player:** Медиа → Открыть файл → выберите M3U (EPG загрузится автоматически)
+          2. **VLC Player:** Медиа → Открыть файл → выберите M3U
           3. **Android:** IPTV Pro, Perfect Player, Televizo
           4. **iOS:** VLC, nPlayer
           5. **Smart TV:** OTT Player, SS IPTV
@@ -87,25 +105,28 @@ jobs:
           - ✅ Логотипы каналов (если доступны)
           - ✅ Авто-обновление каждые 6 часов
           
-          *Создано автоматически через GitHub Actions*"
-          
-          # Delete old release if exists
-          gh release delete latest -y 2>/dev/null || true
-          
-          # Create new release
-          gh release create latest \
-            --title "🌍 IPTV Update $DATE - $TOTAL channels" \
-            --notes "$NOTES" \
+          *Создано автоматически через GitHub Actions*
+          EOF
+          )" \
             --latest
           
-          # Upload ZIP
+          # Upload ZIP if exists
           if [ -f "iptv-playlists.zip" ]; then
-            gh release upload latest iptv-playlists.zip --clobber
+            gh release upload latest iptv-playlists.zip --clobber || echo "ZIP upload failed"
           fi
           
           # Upload individual M3U files
           for f in playlists/*.m3u; do
             if [ -f "$f" ]; then
+              echo "Uploading $f..."
               gh release upload latest "$f" --clobber || true
             fi
           done
+          
+          echo "✅ Release created successfully!"
+
+      - name: Cleanup on failure
+        if: failure()
+        run: |
+          echo "⚠️ Workflow failed! Cleaning up..."
+          # Logic to handle partial failures if needed
