@@ -1,10 +1,12 @@
-name: IPTV Hunter
+name: IPTV Hunter - Channel Aggregator
 
+# Triggers workflow
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Every 6 hours
 
+# Permissions for GitHub Pages and releases
 permissions:
   contents: write
   pages: write
@@ -15,246 +17,612 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      # 1. Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      # 2. Setup Python environment
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 3. Install Python dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
-      - name: Create IPTV Hunter script
+      # 4. Create the hunting script
+      - name: Create IPTV hunter script
         run: |
-          cat << 'ENDSCRIPT' > hunter.py
-          import requests
-          import re
-          import json
-          import os
-          from datetime import datetime
-          from bs4 import BeautifulSoup
+          cat > iptv_hunter.py << 'EOF'
+#!/usr/bin/env python3
+import requests
+import json
+import os
+import re
+from datetime import datetime
+from bs4 import BeautifulSoup
+import sys
 
-          print("=== IPTV Hunter Starting ===")
+print("🚀 Starting IPTV Channel Hunt...")
+print("Searching for M3U playlists...")
 
-          def search_github():
-              print("Searching GitHub sources...")
-              urls = []
-              try:
-                  query = "site:raw.githubusercontent.com iptv m3u"
-                  url = "https://html.duckduckgo.com/html/?q=" + query.replace(" ", "+")
-                  headers = {"User-Agent": "Mozilla/5.0"}
-                  response = requests.get(url, headers=headers, timeout=30)
-                  soup = BeautifulSoup(response.text, "html.parser")
-                  
-                  for link in soup.find_all("a", href=True):
-                      href = link["href"]
-                      if "raw.githubusercontent.com" in href and ".m3u" in href:
-                          urls.append(href)
-                  
-                  print("Found", len(urls), "URLs")
-              except Exception as e:
-                  print("Search error:", e)
-              
-              return list(set(urls))[:30]
+# Configuration
+SEARCH_URL = "https://html.duckduckgo.com/html/"
+SEARCH_QUERY = "site:raw.githubusercontent.com iptv m3u"
+MAX_SOURCES = 30
+REQUEST_TIMEOUT = 15
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
-          def check_stream(url):
-              try:
-                  r = requests.get(url, timeout=8, headers={"User-Agent": "VLC/3.0"})
-                  return r.status_code == 200 and len(r.content) > 100
-              except:
-                  return False
+def search_playlists():
+    """Search for IPTV M3U playlists on GitHub"""
+    print("🔍 Searching DuckDuckGo...")
+    try:
+        # Build search URL
+        params = {'q': SEARCH_QUERY, 's': '0', 'o': 'json'}
+        headers = {'User-Agent': USER_AGENT}
+        
+        response = requests.get(SEARCH_URL, params=params, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        # Parse HTML results
+        soup = BeautifulSoup(response.text, 'html.parser')
+        urls = []
+        
+        # Find links in search results
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            if ('raw.githubusercontent.com' in href and 
+                '.m3u' in href.lower() and 
+                'github' in href):
+                # Extract clean URL from GitHub redirect
+                if '/blob/' in href:
+                    clean_url = href.replace('/blob/', '/').split('?')[0]
+                else:
+                    clean_url = href.split('?')[0]
+                urls.append(clean_url)
+        
+        # Remove duplicates and limit
+        unique_urls = list(set(urls))[:MAX_SOURCES]
+        print(f"📋 Found {len(unique_urls)} potential sources")
+        return unique_urls
+        
+    except Exception as e:
+        print(f"❌ Search error: {str(e)}")
+        return []
 
-          def parse_m3u(url):
-              try:
-                  r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-                  content = r.text
-                  
-                  if "#EXTM3U" not in content:
-                      return []
-                  
-                  channels = []
-                  lines = content.split("\n")
-                  current = {}
-                  
-                  for line in lines:
-                      line = line.strip()
-                      if line.startswith("#EXTINF:"):
-                          name = line.split(",")[-1] if "," in line else "Unknown"
-                          country = "INT"
-                          low = line.lower()
-                          if any(x in low for x in ["ru", "russia", "россия"]): country = "RU"
-                          elif any(x in low for x in ["us", "usa", "america"]): country = "US"
-                          elif any(x in low for x in ["uk", "british", "england"]): country = "UK"
-                          elif any(x in low for x in ["de", "germany"]): country = "DE"
-                          elif any(x in low for x in ["fr", "france"]): country = "FR"
-                          
-                          current = {"name": name, "country": country}
-                      elif line.startswith("http") and current:
-                          current["url"] = line
-                          if check_stream(line):
-                              channels.append(current)
-                          current = {}
-                  
-                  return channels
-              except Exception as e:
-                  print("Parse error:", e)
-                  return []
+def parse_m3u_playlist(url):
+    """Parse M3U playlist and extract channels"""
+    print(f"📺 Parsing: {url}")
+    try:
+        headers = {'User-Agent': 'VLC/3.0.0 LibVLC/3.0.0'}
+        response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        response.raise_for_status()
+        
+        if '#EXTM3U' not in response.text:
+            print(f"  ⏭️ Skipped: Not a valid M3U")
+            return []
+        
+        channels = []
+        lines = response.text.split('\n')
+        current_channel = {}
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Parse channel info
+            if line.startswith('#EXTINF:'):
+                try:
+                    # Extract channel name
+                    if ',' in line:
+                        channel_name = line.split(',')[-1].strip()
+                    else:
+                        channel_name = 'Unknown Channel'
+                    
+                    # Determine country
+                    country = detect_country(channel_name.lower())
+                    current_channel = {
+                        'name': channel_name,
+                        'country': country,
+                        'source': url
+                    }
+                except:
+                    continue
+                    
+            # Parse stream URL
+            elif line.startswith('http') and current_channel:
+                current_channel['url'] = line
+                channels.append(current_channel.copy())
+                current_channel = {}
+                
+        print(f"  ✅ Found {len(channels)} channels")
+        return channels
+        
+    except Exception as e:
+        print(f"  ❌ Error parsing {url}: {str(e)}")
+        return []
 
-          urls = search_github()
-          all_channels = []
+def detect_country(channel_name):
+    """Simple country detection based on channel name"""
+    if any(keyword in channel_name for keyword in ['ru', 'russia', 'русский', 'россия']):
+        return 'RU'
+    elif any(keyword in channel_name for keyword in ['us', 'usa', 'american']):
+        return 'US'
+    elif any(keyword in channel_name for keyword in ['uk', 'british', 'england']):
+        return 'UK'
+    elif any(keyword in channel_name for keyword in ['de', 'german', 'deutsch']):
+        return 'DE'
+    elif any(keyword in channel_name for keyword in ['fr', 'france', 'français']):
+        return 'FR'
+    elif any(keyword in channel_name for keyword in ['es', 'spain', 'español']):
+        return 'ES'
+    elif any(keyword in channel_name for keyword in ['it', 'italy', 'italiano']):
+        return 'IT'
+    else:
+        return 'INT'
 
-          for url in urls:
-              print("Processing:", url[:50])
-              ch = parse_m3u(url)
-              if len(ch) > 2:
-                  print("  Valid channels:", len(ch))
-                  all_channels.extend(ch)
+def main():
+    """Main execution function"""
+    # Step 1: Search for playlists
+    playlist_urls = search_playlists()
+    if not playlist_urls:
+        print("❌ No playlists found. Exiting.")
+        sys.exit(1)
+    
+    # Step 2: Parse all playlists
+    all_channels = []
+    for i, url in enumerate(playlist_urls, 1):
+        print(f"\n[{i}/{len(playlist_urls)}] Processing...")
+        channels = parse_m3u_playlist(url)
+        all_channels.extend(channels)
+    
+    if not all_channels:
+        print("❌ No channels found. Exiting.")
+        sys.exit(1)
+    
+    print(f"\n📊 Total channels found: {len(all_channels)}")
+    
+    # Step 3: Remove duplicates based on URL
+    seen_urls = set()
+    unique_channels = []
+    for channel in all_channels:
+        if channel['url'] not in seen_urls:
+            seen_urls.add(channel['url'])
+            unique_channels.append(channel)
+    
+    print(f"🔄 After deduplication: {len(unique_channels)} unique channels")
+    
+    # Step 4: Group by country
+    channels_by_country = {}
+    for channel in unique_channels:
+        country = channel.get('country', 'INT')
+        if country not in channels_by_country:
+            channels_by_country[country] = []
+        channels_by_country[country].append(channel)
+    
+    print(f"🌍 Countries found: {list(channels_by_country.keys())}")
+    
+    # Step 5: Create M3U playlists
+    print("\n💾 Creating M3U playlists...")
+    os.makedirs('playlists', exist_ok=True)
+    
+    for country, channels in channels_by_country.items():
+        playlist_path = f'playlists/{country}.m3u'
+        try:
+            with open(playlist_path, 'w', encoding='utf-8') as f:
+                f.write('#EXTM3U url-tvg="https://iptv-org.github.io/iptv/index.m3u"\n')
+                f.write('#EXT-X-VERSION:3\n')
+                
+                for channel in channels:
+                    name = channel['name'].replace(',', ' ').strip()
+                    f.write(f'#EXTINF:-1 tvg-id="{name}" tvg-name="{name}" group-title="{country}",{name}\n')
+                    f.write(f'{channel["url"]}\n')
+            
+            print(f"  ✅ Created {country}.m3u ({len(channels)} channels)")
+        except Exception as e:
+            print(f"  ❌ Error creating {country}.m3u: {e}")
+    
+    # Step 6: Create HTML pages
+    print("\n🌐 Creating web interface...")
+    create_html_pages(unique_channels, channels_by_country)
+    
+    # Step 7: Create metadata
+    metadata = {
+        'total_channels': len(unique_channels),
+        'countries': len(channels_by_country),
+        'countries_list': list(channels_by_country.keys()),
+        'update_time': datetime.now().isoformat(),
+        'sources_scanned': len(playlist_urls)
+    }
+    
+    with open('metadata.json', 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+    
+    print(f"\n🎉 IPTV Hunter completed successfully!")
+    print(f"📈 Total: {metadata['total_channels']} channels from {metadata['countries']} countries")
+    print(f"📁 Files created: playlists/, index.html, full.html, metadata.json")
 
-          seen = set()
-          unique = []
-          for ch in all_channels:
-              if ch["url"] not in seen:
-                  seen.add(ch["url"])
-                  unique.append(ch)
-
-          print("Total unique channels:", len(unique))
-
-          by_country = {}
-          for ch in unique:
-              c = ch.get("country", "INT")
-              if c not in by_country:
-                  by_country[c] = []
-              by_country[c].append(ch)
-
-          os.makedirs("playlists", exist_ok=True)
-
-          for country, channels in by_country.items():
-              filename = "playlists/iptv_" + country.lower() + ".m3u"
-              with open(filename, "w", encoding="utf-8") as f:
-                  f.write("#EXTM3U\n")
-                  for ch in channels:
-                      f.write("#EXTINF:-1," + ch["name"] + "\n")
-                      f.write(ch["url"] + "\n")
-              print("Saved:", filename, "-", len(channels), "channels")
-
-          total = len(unique)
-          now = datetime.now().strftime("%d.%m.%Y %H:%M")
-
-          with open("index.html", "w", encoding="utf-8") as f:
-              f.write(f"""<!DOCTYPE html>
-<html lang="ru">
+def create_html_pages(channels, by_country):
+    """Create HTML interface for the aggregator"""
+    total = len(channels)
+    now = datetime.now().strftime("%d.%m.%Y %H:%M")
+    countries_count = len(by_country)
+    
+    # Main index.html
+    index_html = f'''<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>IPTV Aggregator — Live Auto‑Updated M3U</title>
-<style>
-body{{margin:0;padding:20px;font-family:Arial;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:white}}
-.container{{max-width:900px;margin:0 auto;background:rgba(255,255,255,0.95);padding:30px;border-radius:20px;color:#333;text-align:center}}
-h1{{color:#667eea}}
-.stats{{font-size:24px;margin:20px 0;color:#764ba2;font-weight:bold}}
-.iframe-box{{width:100%;height:400px;border:3px solid #667eea;border-radius:10px;margin:20px 0;background:#f5f5f5}}
-.btn{{display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;text-decoration:none;border-radius:25px;font-weight:bold;margin-top:20px}}
-.update{{margin-top:20px;color:#999;font-size:14px}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV Aggregator - {total} Channels</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }}
+        h1 {{
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }}
+        .stats {{
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }}
+        .stat {{
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-weight: bold;
+        }}
+        .btn {{
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            margin: 10px;
+            transition: transform 0.2s;
+        }}
+        .btn:hover {{
+            transform: translateY(-2px);
+        }}
+        .download-section {{
+            margin: 30px 0;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+            font-size: 0.9em;
+        }}
+    </style>
 </head>
 <body>
-<div class="container">
-<h1>IPTV Aggregator</h1>
-<div class="stats">{total} channels | {len(by_country)} countries</div>
-<iframe class="iframe-box" src="full.html"></iframe>
-<br><a href="full.html" class="btn">Open Full Version</a>
-<div class="update">Updated: {now} UTC</div>
-</div>
+    <div class="container">
+        <h1>🎬 IPTV Aggregator</h1>
+        <div class="stats">
+            <div class="stat">{total} Channels</div>
+            <div class="stat">{countries_count} Countries</div>
+        </div>
+        
+        <div class="download-section">
+            <a href="full.html" class="btn">📺 View All Playlists</a>
+            <a href="iptv-playlists.zip" class="btn" download>📦 Download ZIP</a>
+        </div>
+        
+        <div class="footer">
+            <p>Updated: {now} | Auto-generated by IPTV Hunter</p>
+            <p><small>Total sources scanned: {len(by_country)} playlists</small></p>
+        </div>
+    </div>
 </body>
-</html>""")
-
-          with open("full.html", "w", encoding="utf-8") as f:
-              f.write(f"""<!DOCTYPE html>
-<html lang="ru">
+</html>'''
+    
+    with open('index.html', 'w', encoding='utf-8') as f:
+        f.write(index_html)
+    
+    # Full playlists page
+    full_html = '''<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>IPTV Full Catalog</title>
-<style>
-body{{margin:0;padding:20px;font-family:Arial;background:#1a1a2e;color:white}}
-.container{{max-width:1200px;margin:0 auto}}
-.back{{display:inline-block;margin-bottom:20px;color:#64ffda;text-decoration:none}}
-.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}}
-.card{{background:#16213e;padding:20px;border-radius:15px;border:1px solid #0f3460}}
-.count{{font-size:32px;color:#64ffda;font-weight:bold}}
-a.download{{display:inline-block;margin-top:15px;padding:10px 20px;background:#e94560;color:white;text-decoration:none;border-radius:20px}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All IPTV Playlists</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a202c;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #e2e8f0; margin-bottom: 10px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background: #2d3748;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #4a5568;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .country-flag {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .country-name { font-size: 1.5em; color: #63b3ed; margin-bottom: 10px; }
+        .channel-count { color: #a0aec0; margin-bottom: 15px; }
+        .download-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #48bb78;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #4a5568;
+            color: #a0aec0;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-<a href="index.html" class="back">Back</a>
-<h1>IPTV Catalog</h1>
-<div class="grid">""")
-
-              for country in sorted(by_country.keys()):
-                  count = len(by_country[country])
-                  f.write(f'<div class="card"><h2>{country}</h2><div class="count">{count}</div><p>channels</p><a href="playlists/iptv_{country.lower()}.m3u" class="download" download>Download M3U</a></div>')
-
-              f.write(f"""</div>
-<div style="margin-top:40px;padding:30px;background:#16213e;border-radius:15px">
-<h2>How to watch</h2>
-<ul>
- <li>VLC: Media → Open File</li>
- <li>Android: IPTV Pro, Perfect Player</li>
- <li>iOS: VLC</li>
- <li>Smart TV: OTT Player</li>
-</ul>
-<p>Updated: {now} UTC</p>
-</div>
-</div>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">🏠 Back to Home</a>
+            <h1>📺 All Country Playlists</h1>
+        </div>
+        
+        <div class="grid">'''
+    
+    # Add country cards
+    country_flags = {
+        'RU': '🇷🇺', 'US': '🇺🇸', 'UK': '🇬🇧', 'DE': '🇩🇪', 
+        'FR': '🇫🇷', 'ES': '🇪🇸', 'IT': '🇮🇹', 'INT': '🌍'
+    }
+    
+    for country, channels in by_country.items():
+        flag = country_flags.get(country, '🌐')
+        full_html += f'''
+        <div class="card">
+            <div class="country-flag">{flag}</div>
+            <div class="country-name">{country}</div>
+            <div class="channel-count">{len(channels)} channels</div>
+            <a href="playlists/{country}.m3u" class="download-btn" download>📥 Download {country}.m3u</a>
+        </div>'''
+    
+    full_html += f'''
+        </div>
+        
+        <div class="footer">
+            <p>Total: {total} channels | Generated: {now}</p>
+        </div>
+    </div>
 </body>
-</html>""")
+</html>'''
+    
+    with open('full.html', 'w', encoding='utf-8') as f:
+        f.write(full_html)
 
-          meta = {"total": total, "countries": len(by_country), "updated": now}
-          with open("meta.json", "w") as f:
-              json.dump(meta, f)
+if __name__ == "__main__":
+    main()
+EOF
 
-          print("=== Completed ===")
-          ENDSCRIPT
+      chmod +x iptv_hunter.py
 
-      - name: Run IPTV Hunter
-        run: python hunter.py
+      # 5. Run the IPTV hunter
+      - name: Execute IPTV hunting
+        run: |
+          echo "Starting IPTV channel aggregation..."
+          python3 iptv_hunter.py
+          
+          # Verify output files
+          echo "📁 Checking created files:"
+          ls -la *.html || true
+          ls -la playlists/ || true
+          cat metadata.json || true
 
+      # 6. Create ZIP archive of all playlists
+      - name: Create ZIP archive
+        run: |
+          echo "📦 Creating ZIP archive..."
+          if [ -d "playlists" ]; then
+            zip -r iptv-playlists.zip playlists/
+            echo "✅ ZIP created: iptv-playlists.zip"
+            ls -lh iptv-playlists.zip
+          else
+            echo "❌ No playlists directory found!"
+            exit 1
+          fi
+          
+          # Also create a full archive with HTML
+          zip -r iptv-complete.zip . -x ".git/*" "*.zip" "iptv_hunter.py"
+          echo "✅ Complete archive created"
+
+      # 7. Setup GitHub Pages
       - name: Setup GitHub Pages
-        uses: actions/configure-pages@v4
+        if: success()
+        id: pages
+        uses: actions/configure-pages@v5
 
-      - name: Upload to GitHub Pages
+      # 8. Upload Pages artifact
+      - name: Upload GitHub Pages artifact
+        if: success()
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
+      # 9. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        id: deployment
+        if: success()
+        needs: build
         uses: actions/deploy-pages@v4
 
-      - name: Delete old release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release delete latest -y || true
-        continue-on-error: true
-
-      - name: Create new release
+      # 10. Create GitHub Release
+      - name: Create GitHub Release
+        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DATE=$(date +%d.%m.%Y)
-          TOTAL=$(python3 -c "import json; print(json.load(open('meta.json'))['total'])")
-          COUNTRIES=$(python3 -c "import json; print(json.load(open('meta.json'))['countries'])")
-          gh release create latest --title "IPTV $DATE" --notes "Channels: $TOTAL | Countries: $COUNTRIES | Date: $DATE" --latest
-
-      - name: Upload files to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          for file in playlists/*.m3u; do
-            if [ -f "$file" ]; then
-              gh release upload latest "$file" --clobber
+          echo "🎯 Creating GitHub release..."
+          
+          # Get metadata
+          if [ -f "metadata.json" ]; then
+            TOTAL_CHANNELS=$(python3 -c "import json; data=json.load(open('metadata.json')); print(data.get('total_channels', 0))")
+            COUNTRIES=$(python3 -c "import json; data=json.load(open('metadata.json')); print(data.get('countries', 0))")
+            UPDATE_TIME=$(python3 -c "import json; data=json.load(open('metadata.json')); print(data.get('update_time', ''))")
+          else
+            TOTAL_CHANNELS=0
+            COUNTRIES=0
+            UPDATE_TIME=$(date -Iseconds)
+          fi
+          
+          DATE=$(date +%d.%m.%Y\ %H:%M)
+          RELEASE_TITLE="IPTV Hunter - ${TOTAL_CHANNELS} Channels (${DATE})"
+          RELEASE_NOTES="## IPTV Aggregator Update\n\n"
+          RELEASE_NOTES+="**📊 Statistics:**\n"
+          RELEASE_NOTES+="- **Total Channels:** ${TOTAL_CHANNELS}\n"
+          RELEASE_NOTES+="- **Countries:** ${COUNTRIES}\n"
+          RELEASE_NOTES+="**⏰ Updated:** ${DATE}\n\n"
+          RELEASE_NOTES+="### 📁 Downloads\n"
+          RELEASE_NOTES+="- [📦 All Playlists ZIP](iptv-playlists.zip)\n"
+          RELEASE_NOTES+="- [🌐 Complete Package](iptv-complete.zip)\n\n"
+          RELEASE_NOTES+="### 🌍 Country Playlists\n"
+          
+          # List country files
+          if [ -d "playlists" ]; then
+            for file in playlists/*.m3u; do
+              if [ -f "$file" ]; then
+                country=$(basename "$file" .m3u)
+                channels=$(wc -l < "$file")
+                RELEASE_NOTES+="**${country}:** \`$(grep -c '^#EXTINF' "$file")\` channels\n"
+              fi
+            done
+          fi
+          
+          RELEASE_NOTES+="\n### 🔗 Live Demo\n"
+          RELEASE_NOTES+="**[View Online](https://YOUR_USERNAME.github.io/YOUR_REPO/)** - Interactive web interface\n\n"
+          RELEASE_NOTES+="*Generated automatically by IPTV Hunter* 🚀"
+          
+          # Delete previous 'latest' release if exists
+          echo "🗑️ Cleaning previous release..."
+          gh release delete latest -y || true
+          
+          # Create new release
+          echo "📤 Creating release: $RELEASE_TITLE"
+          gh release create latest \
+            --title "$RELEASE_TITLE" \
+            --notes "$RELEASE_NOTES" \
+            --generate-notes \
+            --latest
+          
+          # Upload assets
+          echo "📤 Uploading assets..."
+          if [ -f "iptv-playlists.zip" ]; then
+            gh release upload latest iptv-playlists.zip --clobber
+            echo "✅ Uploaded: iptv-playlists.zip"
+          fi
+          
+          if [ -f "iptv-complete.zip" ]; then
+            gh release upload latest iptv-complete.zip --clobber
+            echo "✅ Uploaded: iptv-complete.zip"
+          fi
+          
+          # Upload individual M3U files
+          if [ -d "playlists" ]; then
+            for file in playlists/*.m3u; do
+              if [ -f "$file" ]; then
+                echo "📤 Uploading: $file"
+                gh release upload latest "$file" --clobber || true
+              fi
+            done
+          fi
+          
+          # Upload HTML files
+          for html_file in index.html full.html; do
+            if [ -f "$html_file" ]; then
+              gh release upload latest "$html_file" --clobber
+              echo "✅ Uploaded: $html_file"
             fi
           done
+          
+          echo "🎉 Release completed successfully!"
+          echo "📋 Release assets:"
+          gh release view latest --json assets --jq '.assets[].name' || true
+
+      # 11. Cleanup step
+      - name: Cleanup and summary
+        if: always()
+        run: |
+          echo "🔍 Workflow summary:"
+          echo "  - Repository: ${{ github.repository }}"
+          echo "  - Trigger: ${{ github.event_name }}"
+          echo "  - Status: ${{ job.status }}"
+          
+          if [ -f "metadata.json" ]; then
+            echo "📊 Generated content:"
+            cat metadata.json
+          fi
+          
+          echo "📁 Final directory structure:"
+          find . -type f -name "*.m3u" -o -name "*.html" -o -name "*.zip" -o -name "*.json" | head -20 || true
