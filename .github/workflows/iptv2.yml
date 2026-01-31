@@ -12,28 +12,32 @@ jobs:
     steps:
       - name: Manual Checkout and Update
         run: |
-          # Клонируем репозиторий вручную без сторонних экшенов
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
           
-          # Формируем README
+          # 1. Заголовок
           echo "# 📺 IPTV MIR 2026" > README.md
           echo "" >> README.md
-          echo "### Прямой эфир доступен ниже:" >> README.md
+          
+          # 2. Красивое превью вместо iframe (кликабельная картинка)
+          echo "### 🎬 Плеер запущен и готов к работе" >> README.md
+          echo "[![Нажмите, чтобы открыть плеер](https://img.shields.io/badge/ЗАПУСТИТЬ_ПЛЕЕР-КЛИКНИТЕ_ЗДЕСЬ-red?style=for-the-badge&logo=youtube&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)" >> README.md
+          echo "" >> README.md
+          echo "> **Примечание:** Нажмите на кнопку выше, чтобы открыть интерактивное окно ТВ в браузере." >> README.md
           echo "" >> README.md
           
-          # Вставка плеера
-          echo '<iframe src="https://iptvru2026.github.io/IPTVMIR/full.html" width="100%" height="600px" frameborder="0"></iframe>' >> README.md
-          
-          echo "" >> README.md
-          echo '[![Перейти на сайт](https://img.shields.io/badge/Смотреть-На_полный_экран-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://iptvru2026.github.io/IPTVMIR/full.html)' >> README.md
-          echo "" >> README.md
+          # 3. Краткая информация о релизе
           echo "---" >> README.md
-          echo "### ℹ️ Краткая информация о релизе" >> README.md
-          echo "Данный релиз **IPTV MIR** включает в себя обновленный список каналов, поддержку адаптивного плеера и оптимизацию для мобильных устройств." >> README.md
+          echo "### ℹ️ Краткая информация о релизе IPTV" >> README.md
+          echo "Этот релиз содержит актуальную сборку плеера с оптимизированным кэшированием потоков. Все каналы IPTV MIR 2026 доступны в HD качестве без дополнительной настройки." >> README.md
+          echo "" >> README.md
+
+          # 4. Ссылка на релизы в самом низу
+          echo "---" >> README.md
+          echo "📂 **Официальные сборки:** [Посмотреть все релизы и версии](https://github.com/${{ github.repository }}/releases)" >> README.md
 
           # Настройка и пуш
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "Update README without external actions" || exit 0
+          git commit -m "Fix: Replace iframe with clickable banner" || exit 0
           git push origin main
