@@ -1,65 +1,1025 @@
-name: Update IPTV MIR 2026
+name: 🚀 Update IPTV Release & Site
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Каждые 6 часов
+  push:
+    branches: [ main, master ]
+
+env:
+  DROPBOX_APP_KEY: hh6l23o1jizouky
+  DROPBOX_APP_SECRET: 03hf3f8ligh6bwb
+  PLAYLIST_ORIGINAL: /IPTV_MEGA_PLAYLIST.m3u
+  PLAYLIST_PROXY: /IPTV_MEGA_PLAYLIST_PROXY.m3u
 
 jobs:
-  build:
+  update-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Generate Files
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
         run: |
-          # 1. СОЗДАЕМ INDEX.HTML (Главная страница плеера с JS)
-          # Это то, что увидит пользователь по ссылке. Здесь JS разрешен!
-          cat <<EOF > index.html
+          pip install dropbox requests
+
+      - name: Download from Dropbox
+        id: download
+        run: |
+          python3 << 'EOF'
+          import dropbox
+          import os
+          
+          # Читаем токен
+          with open('dropbox_token.txt', 'r') as f:
+              token = f.read().strip()
+          
+          db = dropbox.Dropbox(token)
+          
+          # Скачиваем оригинал
+          try:
+              _, res = db.files_download(os.environ['PLAYLIST_ORIGINAL'])
+              with open('IPTV_WORLD.m3u', 'wb') as f:
+                  f.write(res.content)
+              print("✅ Оригинал скачан")
+          except Exception as e:
+              print(f"❌ Ошибка оригинала: {e}")
+              exit(1)
+          
+          # Скачиваем прокси-версию
+          try:
+              _, res = db.files_download(os.environ['PLAYLIST_PROXY'])
+              with open('IPTV_WORLD_PROXY.m3u', 'wb') as f:
+                  f.write(res.content)
+              print("✅ Прокси-версия скачана")
+          except Exception as e:
+              print(f"⚠️ Прокси-версия не найдена, используем оригинал")
+              with open('IPTV_WORLD_PROXY.m3u', 'wb') as f:
+                  with open('IPTV_WORLD.m3u', 'rb') as orig:
+                      f.write(orig.read())
+          
+          # Получаем прямые ссылки
+          try:
+              # Оригинал
+              try:
+                  sh = db.sharing_create_shared_link_with_settings(
+                      os.environ['PLAYLIST_ORIGINAL'],
+                      settings=dropbox.sharing.SharedLinkSettings(
+                          requested_visibility=dropbox.sharing.RequestedVisibility.public
+                      )
+                  )
+                  link_orig = sh.url
+              except:
+                  existing = db.sharing_list_shared_links(path=os.environ['PLAYLIST_ORIGINAL'])
+                  link_orig = existing.links[0].url if existing.links else ""
+              
+              # Прокси
+              try:
+                  sh = db.sharing_create_shared_link_with_settings(
+                      os.environ['PLAYLIST_PROXY'],
+                      settings=dropbox.sharing.SharedLinkSettings(
+                          requested_visibility=dropbox.sharing.RequestedVisibility.public
+                      )
+                  )
+                  link_proxy = sh.url
+              except:
+                  existing = db.sharing_list_shared_links(path=os.environ['PLAYLIST_PROXY'])
+                  link_proxy = existing.links[0].url if existing.links else ""
+              
+              # Конвертируем в прямые ссылки
+              direct_orig = link_orig.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '') if link_orig else ""
+              direct_proxy = link_proxy.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '') if link_proxy else ""
+              
+              # Сохраняем в env для следующих шагов
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write f"link_orig={direct_orig}\n"
+                  f.write f"link_proxy={direct_proxy}\n"
+              
+              print(f"🔗 Оригинал: {direct_orig}")
+              print(f"🔗 Прокси: {direct_proxy}")
+              
+          except Exception as e:
+              print(f"⚠️ Не удалось получить ссылки: {e}")
+          EOF
+
+      - name: Generate timestamp
+        id: timestamp
+        run: |
+          echo "date=$(date +'%d.%m.%Y %H:%M')" >> $GITHUB_OUTPUT
+          echo "version=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Delete old releases
+        uses: dev-drprasad/delete-older-releases@v0.3.2
+        with:
+          keep_latest: 0
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create new release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.timestamp.outputs.version }}
+          name: 🌍 IPTV World ${{ steps.timestamp.outputs.date }}
+          body: |
+            ## 🚀 IPTV World - Глобальное Телевидение
+            
+            ### 📥 Плейлисты
+            
+            | Тип | Описание | Ссылка |
+            |-----|----------|--------|
+            | 🌐 **Стандарт** | Для всех стран | [Скачать](${{ steps.download.outputs.link_orig }}) |
+            | 🔒 **PROXY** | Для РФ и блокировок | [Скачать](${{ steps.download.outputs.link_proxy }}) |
+            
+            ### 🛡️ Особенности
+            
+            - **Глобальное покрытие** - Работает в любой стране мира
+            - **Авто-обход блокировок** - Специальная версия для РФ
+            - **Anti-DPI технологии** - Обход глубокой инспекции пакетов
+            - **DNS-over-HTTPS** - Защищенное разрешение доменов
+            - **CORS Proxy** - Автоматическая маршрутизация
+            
+            ### 📱 Поддерживаемые устройства
+            
+            - ✅ Android / iOS
+            - ✅ Smart TV (Samsung, LG, Android TV)
+            - ✅ Apple TV / tvOS
+            - ✅ Windows / macOS / Linux
+            - ✅ MAG Box / Enigma2
+            - ✅ VLC / Kodi / Perfect Player
+            
+            ### 🔧 Настройки для РФ
+            
+            Если стандартная версия не работает:
+            1. Используйте **PROXY-версию**
+            2. Установите DNS: `77.88.8.8` (Яндекс) или `195.201.226.220` (АнтиЗапрет)
+            3. Включите DoH (DNS-over-HTTPS) в плеере
+            
+            ### 🌟 Онлайн-плеер
+            
+            Смотрите прямо в браузере: [Открыть плеер](https://${{ github.repository_owner }}.github.io/IPTVMIR/player)
+            
+            ---
+            ⏰ Обновлено: ${{ steps.timestamp.outputs.date }}
+          files: |
+            IPTV_WORLD.m3u
+            IPTV_WORLD_PROXY.m3u
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Create website
+        run: |
+          mkdir -p _site/player
+          
+          # Главная страница
+          cat > _site/index.html << 'HTMLEOF'
           <!DOCTYPE html>
           <html lang="ru">
           <head>
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>IPTV MIR 2026 - Player</title>
+              <title>🌍 IPTV World - Глобальное Телевидение</title>
               <style>
-                  body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-                  .loader { color: white; text-align: center; }
-                  /* Стиль для имитации окна плеера */
-                  iframe { width: 100%; height: 100vh; border: none; }
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+                      min-height: 100vh;
+                      color: #fff;
+                      overflow-x: hidden;
+                  }
+                  .stars {
+                      position: fixed;
+                      top: 0; left: 0; width: 100%; height: 100%;
+                      pointer-events: none;
+                      background-image: 
+                          radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                          radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+                          radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+                          radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+                          radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0));
+                      background-repeat: repeat;
+                      background-size: 200px 200px;
+                      animation: twinkle 5s ease-in-out infinite;
+                      opacity: 0.5;
+                  }
+                  @keyframes twinkle {
+                      0%, 100% { opacity: 0.5; }
+                      50% { opacity: 0.8; }
+                  }
+                  .container {
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 40px 20px;
+                      position: relative;
+                      z-index: 1;
+                  }
+                  header {
+                      text-align: center;
+                      padding: 60px 0;
+                  }
+                  .logo {
+                      font-size: 4rem;
+                      margin-bottom: 20px;
+                      animation: float 3s ease-in-out infinite;
+                  }
+                  @keyframes float {
+                      0%, 100% { transform: translateY(0); }
+                      50% { transform: translateY(-10px); }
+                  }
+                  h1 {
+                      font-size: 3.5rem;
+                      font-weight: 800;
+                      background: linear-gradient(90deg, #00f260, #0575e6, #00f260);
+                      background-size: 200% auto;
+                      -webkit-background-clip: text;
+                      -webkit-text-fill-color: transparent;
+                      animation: shine 3s linear infinite;
+                      margin-bottom: 20px;
+                  }
+                  @keyframes shine {
+                      to { background-position: 200% center; }
+                  }
+                  .subtitle {
+                      font-size: 1.3rem;
+                      color: rgba(255,255,255,0.8);
+                      max-width: 600px;
+                      margin: 0 auto;
+                      line-height: 1.6;
+                  }
+                  .globe {
+                      width: 200px;
+                      height: 200px;
+                      margin: 40px auto;
+                      background: linear-gradient(45deg, #00f260, #0575e6);
+                      border-radius: 50%;
+                      position: relative;
+                      box-shadow: 0 0 60px rgba(0,242,96,0.3), inset 0 0 60px rgba(0,0,0,0.3);
+                      animation: rotate 20s linear infinite;
+                  }
+                  @keyframes rotate {
+                      from { transform: rotate(0deg); }
+                      to { transform: rotate(360deg); }
+                  }
+                  .features {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                      gap: 30px;
+                      margin: 60px 0;
+                  }
+                  .feature-card {
+                      background: rgba(255,255,255,0.05);
+                      backdrop-filter: blur(10px);
+                      border: 1px solid rgba(255,255,255,0.1);
+                      border-radius: 20px;
+                      padding: 30px;
+                      transition: all 0.3s ease;
+                  }
+                  .feature-card:hover {
+                      transform: translateY(-5px);
+                      background: rgba(255,255,255,0.1);
+                      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                  }
+                  .feature-icon {
+                      font-size: 3rem;
+                      margin-bottom: 20px;
+                  }
+                  .feature-title {
+                      font-size: 1.5rem;
+                      font-weight: 700;
+                      margin-bottom: 15px;
+                      color: #00f260;
+                  }
+                  .feature-desc {
+                      color: rgba(255,255,255,0.7);
+                      line-height: 1.6;
+                  }
+                  .downloads {
+                      background: rgba(0,0,0,0.3);
+                      border-radius: 30px;
+                      padding: 50px;
+                      margin: 60px 0;
+                      text-align: center;
+                  }
+                  .downloads h2 {
+                      font-size: 2.5rem;
+                      margin-bottom: 40px;
+                  }
+                  .download-grid {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                      gap: 30px;
+                      max-width: 800px;
+                      margin: 0 auto;
+                  }
+                  .download-card {
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                      border-radius: 20px;
+                      padding: 40px 30px;
+                      text-decoration: none;
+                      color: white;
+                      transition: all 0.3s ease;
+                      position: relative;
+                      overflow: hidden;
+                  }
+                  .download-card::before {
+                      content: '';
+                      position: absolute;
+                      top: 0; left: 0; right: 0; bottom: 0;
+                      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                      opacity: 0;
+                      transition: opacity 0.3s;
+                  }
+                  .download-card:hover::before {
+                      opacity: 1;
+                  }
+                  .download-card.proxy {
+                      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                  }
+                  .download-card.proxy::before {
+                      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                  }
+                  .download-content {
+                      position: relative;
+                      z-index: 1;
+                  }
+                  .download-icon {
+                      font-size: 4rem;
+                      margin-bottom: 20px;
+                  }
+                  .download-title {
+                      font-size: 1.8rem;
+                      font-weight: 700;
+                      margin-bottom: 10px;
+                  }
+                  .download-desc {
+                      font-size: 0.95rem;
+                      opacity: 0.9;
+                  }
+                  .player-section {
+                      text-align: center;
+                      margin: 60px 0;
+                  }
+                  .player-btn {
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 15px;
+                      background: linear-gradient(90deg, #00f260, #0575e6);
+                      color: white;
+                      text-decoration: none;
+                      padding: 20px 50px;
+                      border-radius: 50px;
+                      font-size: 1.3rem;
+                      font-weight: 700;
+                      transition: all 0.3s ease;
+                      box-shadow: 0 10px 30px rgba(0,242,96,0.3);
+                  }
+                  .player-btn:hover {
+                      transform: scale(1.05);
+                      box-shadow: 0 20px 40px rgba(0,242,96,0.4);
+                  }
+                  .countries {
+                      display: flex;
+                      flex-wrap: wrap;
+                      justify-content: center;
+                      gap: 15px;
+                      margin: 40px 0;
+                  }
+                  .country-tag {
+                      background: rgba(255,255,255,0.1);
+                      padding: 10px 20px;
+                      border-radius: 30px;
+                      font-size: 0.9rem;
+                      border: 1px solid rgba(255,255,255,0.2);
+                  }
+                  footer {
+                      text-align: center;
+                      padding: 40px;
+                      color: rgba(255,255,255,0.5);
+                      border-top: 1px solid rgba(255,255,255,0.1);
+                      margin-top: 60px;
+                  }
+                  .pulse {
+                      animation: pulse 2s infinite;
+                  }
+                  @keyframes pulse {
+                      0%, 100% { opacity: 1; }
+                      50% { opacity: 0.7; }
+                  }
               </style>
           </head>
           <body>
-              <iframe src="full.html"></iframe>
+              <div class="stars"></div>
+              <div class="container">
+                  <header>
+                      <div class="logo">📡</div>
+                      <h1>IPTV WORLD</h1>
+                      <p class="subtitle">Глобальное телевидение без границ. Работает в любой точке мира с интеллектуальным обходом блокировок.</p>
+                      <div class="globe"></div>
+                  </header>
+
+                  <div class="countries">
+                      <span class="country-tag">🇷🇺 Россия</span>
+                      <span class="country-tag">🇺🇸 США</span>
+                      <span class="country-tag">🇪🇺 Европа</span>
+                      <span class="country-tag">🇨🇳 Азия</span>
+                      <span class="country-tag">🇧🇷 Латинская Америка</span>
+                      <span class="country-tag">🇿🇦 Африка</span>
+                      <span class="country-tag">🇦🇺 Океания</span>
+                  </div>
+
+                  <div class="features">
+                      <div class="feature-card">
+                          <div class="feature-icon">🌍</div>
+                          <div class="feature-title">Глобальное покрытие</div>
+                          <div class="feature-desc">Работает в любой стране мира без ограничений. Автоматический выбор оптимального маршрута.</div>
+                      </div>
+                      <div class="feature-card">
+                          <div class="feature-icon">🛡️</div>
+                          <div class="feature-title">Anti-DPI защита</div>
+                          <div class="feature-desc">Обход глубокой инспекции пакетов. Невозможно заблокировать провайдером.</div>
+                      </div>
+                      <div class="feature-card">
+                          <div class="feature-icon">⚡</div>
+                          <div class="feature-title">Максимальная скорость</div>
+                          <div class="feature-desc">Оптимизированные серверы и маршруты. Буферизация минимальна.</div>
+                      </div>
+                      <div class="feature-card">
+                          <div class="feature-icon">🔒</div>
+                          <div class="feature-title">DNS-over-HTTPS</div>
+                          <div class="feature-desc">Зашифрованные DNS-запросы. Полная приватность и безопасность.</div>
+                      </div>
+                      <div class="feature-card">
+                          <div class="feature-icon">📱</div>
+                          <div class="feature-title">Все устройства</div>
+                          <div class="feature-desc">Smart TV, телефоны, компьютеры, TV-приставки. Поддержка всех форматов.</div>
+                      </div>
+                      <div class="feature-card">
+                          <div class="feature-icon">🔄</div>
+                          <div class="feature-title">Авто-обновление</div>
+                          <div class="feature-desc">Плейлисты обновляются автоматически. Всегда актуальные каналы.</div>
+                      </div>
+                  </div>
+
+                  <div class="downloads">
+                      <h2>📥 Скачать плейлист</h2>
+                      <div class="download-grid">
+                          <a href="RELEASE_ORIGINAL_URL" class="download-card" target="_blank">
+                              <div class="download-content">
+                                  <div class="download-icon">🌐</div>
+                                  <div class="download-title">STANDARD</div>
+                                  <div class="download-desc">Для всех стран мира<br>Без обхода блокировок</div>
+                              </div>
+                          </a>
+                          <a href="RELEASE_PROXY_URL" class="download-card proxy" target="_blank">
+                              <div class="download-content">
+                                  <div class="download-icon">🔒</div>
+                                  <div class="download-title">PROXY</div>
+                                  <div class="download-desc">Для России и блокировок<br>Anti-DPI + DNS обход</div>
+                              </div>
+                          </a>
+                      </div>
+                  </div>
+
+                  <div class="player-section">
+                      <h2 style="font-size: 2rem; margin-bottom: 30px;">▶️ Смотреть онлайн</h2>
+                      <a href="player/" class="player-btn pulse">
+                          <span>📺</span>
+                          <span>Открыть веб-плеер</span>
+                      </a>
+                      <p style="margin-top: 20px; color: rgba(255,255,255,0.6);">Работает прямо в браузере без установки</p>
+                  </div>
+
+                  <footer>
+                      <p>🚀 IPTV World © 2024 | Глобальное телевидение нового поколения</p>
+                      <p style="margin-top: 10px; font-size: 0.9rem;">Обновлено: BUILD_DATE</p>
+                  </footer>
+              </div>
           </body>
           </html>
-          EOF
+          HTMLEOF
 
-          # 2. ОБНОВЛЯЕМ README.MD (Красивая витрина)
-          echo "# 📺 IPTV MIR 2026" > README.md
-          echo "" >> README.md
-          echo "![Status](https://img.shields.io/badge/Статус-В_ЭФИРЕ-brightgreen?style=for-the-badge)" >> README.md
-          echo "" >> README.md
-          echo "### 🚀 Интерактивная веб-панель" >> README.md
-          echo "Для запуска плеера используйте кнопку ниже. Система автоматически подберет лучший сервер." >> README.md
-          echo "" >> README.md
-          echo "<a href='https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/'>" >> README.md
-          echo "  <img src='https://raw.githubusercontent.com/interactivetv/images/main/play_button.png' width='300' alt='ЗАПУСТИТЬ ПЛЕЕР' />" >> README.md
-          echo "</a>" >> README.md
-          echo "" >> README.md
-          echo "> **INFO:** Если плеер не открывается, проверьте наличие интернет-соединения. Текущая версия оптимизирована для 2026 года." >> README.md
-          echo "" >> README.md
-          echo "---" >> README.md
-          echo "📂 [Релизы](${{ github.server_url }}/${{ github.repository }}/releases) | 🛠 [Поддержка](${{ github.server_url }}/${{ github.repository }}/issues)" >> README.md
+          # Заменяем URL в шаблоне
+          sed -i "s|RELEASE_ORIGINAL_URL|${{ steps.download.outputs.link_orig }}|g" _site/index.html
+          sed -i "s|RELEASE_PROXY_URL|${{ steps.download.outputs.link_proxy }}|g" _site/index.html
+          sed -i "s|BUILD_DATE|${{ steps.timestamp.outputs.date }}|g" _site/index.html
 
-      - name: Commit and Push
+          # Создаем страницу плеера
+          cat > _site/player/index.html << 'PLAYEREOF'
+          <!DOCTYPE html>
+          <html lang="ru">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>▶️ IPTV Player - Онлайн просмотр</title>
+              <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+              <script src="https://cdn.jsdelivr.net/npm/mux.js@latest"></script>
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      background: #0a0a0a;
+                      color: #fff;
+                      min-height: 100vh;
+                  }
+                  .header {
+                      background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+                      padding: 20px;
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      border-bottom: 1px solid rgba(255,255,255,0.1);
+                  }
+                  .logo {
+                      font-size: 1.5rem;
+                      font-weight: 700;
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                  }
+                  .back-btn {
+                      background: rgba(255,255,255,0.1);
+                      color: white;
+                      text-decoration: none;
+                      padding: 10px 20px;
+                      border-radius: 8px;
+                      transition: all 0.3s;
+                  }
+                  .back-btn:hover {
+                      background: rgba(255,255,255,0.2);
+                  }
+                  .main-container {
+                      display: grid;
+                      grid-template-columns: 350px 1fr;
+                      height: calc(100vh - 80px);
+                  }
+                  .playlist-panel {
+                      background: #1a1a1a;
+                      border-right: 1px solid rgba(255,255,255,0.1);
+                      overflow-y: auto;
+                  }
+                  .panel-header {
+                      padding: 20px;
+                      background: #252525;
+                      border-bottom: 1px solid rgba(255,255,255,0.1);
+                  }
+                  .panel-title {
+                      font-size: 1.2rem;
+                      font-weight: 600;
+                      margin-bottom: 15px;
+                  }
+                  .playlist-selector {
+                      display: flex;
+                      gap: 10px;
+                      margin-bottom: 15px;
+                  }
+                  .playlist-btn {
+                      flex: 1;
+                      padding: 10px;
+                      border: none;
+                      border-radius: 8px;
+                      cursor: pointer;
+                      font-size: 0.85rem;
+                      transition: all 0.3s;
+                  }
+                  .playlist-btn.standard {
+                      background: #667eea;
+                      color: white;
+                  }
+                  .playlist-btn.proxy {
+                      background: #f5576c;
+                      color: white;
+                  }
+                  .playlist-btn.active {
+                      box-shadow: 0 0 0 2px #fff;
+                  }
+                  .search-box {
+                      width: 100%;
+                      padding: 12px;
+                      border: 1px solid rgba(255,255,255,0.2);
+                      border-radius: 8px;
+                      background: #0a0a0a;
+                      color: white;
+                      font-size: 0.9rem;
+                  }
+                  .search-box:focus {
+                      outline: none;
+                      border-color: #667eea;
+                  }
+                  .channel-list {
+                      padding: 10px;
+                  }
+                  .channel-item {
+                      display: flex;
+                      align-items: center;
+                      gap: 15px;
+                      padding: 12px;
+                      border-radius: 10px;
+                      cursor: pointer;
+                      transition: all 0.2s;
+                      margin-bottom: 5px;
+                  }
+                  .channel-item:hover {
+                      background: rgba(102, 126, 234, 0.2);
+                  }
+                  .channel-item.active {
+                      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+                  }
+                  .channel-logo {
+                      width: 50px;
+                      height: 50px;
+                      border-radius: 10px;
+                      background: rgba(255,255,255,0.1);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 1.5rem;
+                      flex-shrink: 0;
+                  }
+                  .channel-info {
+                      flex: 1;
+                      min-width: 0;
+                  }
+                  .channel-name {
+                      font-weight: 600;
+                      margin-bottom: 4px;
+                      white-space: nowrap;
+                      overflow: hidden;
+                      text-overflow: ellipsis;
+                  }
+                  .channel-group {
+                      font-size: 0.8rem;
+                      color: rgba(255,255,255,0.6);
+                  }
+                  .player-area {
+                      display: flex;
+                      flex-direction: column;
+                      background: #000;
+                  }
+                  .video-container {
+                      flex: 1;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      position: relative;
+                  }
+                  video {
+                      width: 100%;
+                      height: 100%;
+                      max-height: calc(100vh - 200px);
+                  }
+                  .controls {
+                      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+                      padding: 30px;
+                      position: absolute;
+                      bottom: 0;
+                      left: 0;
+                      right: 0;
+                      opacity: 0;
+                      transition: opacity 0.3s;
+                  }
+                  .video-container:hover .controls {
+                      opacity: 1;
+                  }
+                  .control-bar {
+                      display: flex;
+                      align-items: center;
+                      gap: 20px;
+                  }
+                  .play-btn {
+                      width: 50px;
+                      height: 50px;
+                      border-radius: 50%;
+                      background: white;
+                      border: none;
+                      cursor: pointer;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 1.2rem;
+                  }
+                  .progress-bar {
+                      flex: 1;
+                      height: 4px;
+                      background: rgba(255,255,255,0.3);
+                      border-radius: 2px;
+                      cursor: pointer;
+                      position: relative;
+                  }
+                  .progress-fill {
+                      height: 100%;
+                      background: #667eea;
+                      border-radius: 2px;
+                      width: 0%;
+                  }
+                  .volume-control {
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                  }
+                  .status-bar {
+                      background: #1a1a1a;
+                      padding: 15px 30px;
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      border-top: 1px solid rgba(255,255,255,0.1);
+                  }
+                  .status-info {
+                      display: flex;
+                      align-items: center;
+                      gap: 20px;
+                  }
+                  .status-item {
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      font-size: 0.9rem;
+                      color: rgba(255,255,255,0.7);
+                  }
+                  .status-dot {
+                      width: 8px;
+                      height: 8px;
+                      border-radius: 50%;
+                      background: #00f260;
+                      animation: pulse 2s infinite;
+                  }
+                  @keyframes pulse {
+                      0%, 100% { opacity: 1; }
+                      50% { opacity: 0.5; }
+                  }
+                  .loading {
+                      position: absolute;
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%);
+                      font-size: 3rem;
+                      animation: spin 1s linear infinite;
+                  }
+                  @keyframes spin {
+                      from { transform: translate(-50%, -50%) rotate(0deg); }
+                      to { transform: translate(-50%, -50%) rotate(360deg); }
+                  }
+                  @media (max-width: 900px) {
+                      .main-container {
+                          grid-template-columns: 1fr;
+                      }
+                      .playlist-panel {
+                          position: fixed;
+                          left: -100%;
+                          top: 80px;
+                          width: 80%;
+                          height: calc(100vh - 80px);
+                          z-index: 100;
+                          transition: left 0.3s;
+                      }
+                      .playlist-panel.open {
+                          left: 0;
+                      }
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <div class="logo">📺 IPTV World Player</div>
+                  <a href="../" class="back-btn">← На главную</a>
+              </div>
+              
+              <div class="main-container">
+                  <div class="playlist-panel" id="playlistPanel">
+                      <div class="panel-header">
+                          <div class="panel-title">📋 Каналы</div>
+                          <div class="playlist-selector">
+                              <button class="playlist-btn standard active" onclick="switchPlaylist('standard')">🌐 Standard</button>
+                              <button class="playlist-btn proxy" onclick="switchPlaylist('proxy')">🔒 Proxy</button>
+                          </div>
+                          <input type="text" class="search-box" placeholder="🔍 Поиск канала..." id="searchBox" onkeyup="filterChannels()">
+                      </div>
+                      <div class="channel-list" id="channelList">
+                          <div class="loading">⏳</div>
+                      </div>
+                  </div>
+                  
+                  <div class="player-area">
+                      <div class="video-container" id="videoContainer">
+                          <video id="videoPlayer" controls></video>
+                          <div class="loading" id="loader" style="display: none;">⏳</div>
+                      </div>
+                      <div class="status-bar">
+                          <div class="status-info">
+                              <div class="status-item">
+                                  <div class="status-dot"></div>
+                                  <span id="currentChannel">Выберите канал</span>
+                              </div>
+                              <div class="status-item">
+                                  📊 <span id="channelCount">0 каналов</span>
+                              </div>
+                          </div>
+                          <div class="status-item">
+                              🚀 <span id="connectionType">Standard</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <script>
+                  const PLAYLIST_URLS = {
+                      standard: 'PLAYLIST_STANDARD_URL',
+                      proxy: 'PLAYLIST_PROXY_URL'
+                  };
+                  
+                  let currentPlaylist = 'standard';
+                  let channels = [];
+                  let hls = null;
+                  let currentChannelIndex = -1;
+
+                  async function loadPlaylist(type) {
+                      currentPlaylist = type;
+                      document.getElementById('connectionType').textContent = type === 'proxy' ? '🔒 Proxy Mode' : '🌐 Standard';
+                      document.getElementById('loader').style.display = 'block';
+                      
+                      try {
+                          // Используем CORS-прокси для загрузки плейлиста
+                          const corsProxy = 'https://api.allorigins.win/raw?url=';
+                          const response = await fetch(corsProxy + encodeURIComponent(PLAYLIST_URLS[type]));
+                          const text = await response.text();
+                          parsePlaylist(text);
+                      } catch (e) {
+                          console.error('Ошибка загрузки:', e);
+                          alert('Не удалось загрузить плейлист. Попробуйте другой режим.');
+                      }
+                      
+                      document.getElementById('loader').style.display = 'none';
+                  }
+
+                  function parsePlaylist(m3uContent) {
+                      channels = [];
+                      const lines = m3uContent.split('\n');
+                      let currentChannel = {};
+                      
+                      for (let line of lines) {
+                          line = line.trim();
+                          if (line.startsWith('#EXTINF:')) {
+                              const nameMatch = line.match(/tvg-name="([^"]+)"/) || line.match(/,(.+)$/);
+                              const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                              const groupMatch = line.match(/group-title="([^"]+)"/);
+                              
+                              currentChannel = {
+                                  name: nameMatch ? nameMatch[1] : 'Unknown',
+                                  logo: logoMatch ? logoMatch[1] : '',
+                                  group: groupMatch ? groupMatch[1] : 'General',
+                                  url: ''
+                              };
+                          } else if (line && !line.startsWith('#') && currentChannel.name) {
+                              currentChannel.url = line;
+                              channels.push({...currentChannel});
+                              currentChannel = {};
+                          }
+                      }
+                      
+                      renderChannels();
+                      document.getElementById('channelCount').textContent = channels.length + ' каналов';
+                  }
+
+                  function renderChannels(filter = '') {
+                      const list = document.getElementById('channelList');
+                      list.innerHTML = '';
+                      
+                      const filtered = channels.filter(ch => 
+                          ch.name.toLowerCase().includes(filter.toLowerCase())
+                      );
+                      
+                      filtered.forEach((ch, index) => {
+                          const div = document.createElement('div');
+                          div.className = 'channel-item' + (index === currentChannelIndex ? ' active' : '');
+                          div.onclick = () => playChannel(index);
+                          
+                          const logo = ch.logo ? 
+                              `<img src="${ch.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.style.display='none'">` :
+                              '📺';
+                          
+                          div.innerHTML = `
+                              <div class="channel-logo">${logo}</div>
+                              <div class="channel-info">
+                                  <div class="channel-name">${ch.name}</div>
+                                  <div class="channel-group">${ch.group}</div>
+                              </div>
+                          `;
+                          list.appendChild(div);
+                      });
+                  }
+
+                  function playChannel(index) {
+                      if (index < 0 || index >= channels.length) return;
+                      
+                      currentChannelIndex = index;
+                      const channel = channels[index];
+                      document.getElementById('currentChannel').textContent = channel.name;
+                      
+                      const video = document.getElementById('videoPlayer');
+                      
+                      if (hls) {
+                          hls.destroy();
+                      }
+                      
+                      // Проверяем поддержку HLS
+                      if (Hls.isSupported()) {
+                          hls = new Hls({
+                              enableWorker: true,
+                              lowLatencyMode: true,
+                              backBufferLength: 90
+                          });
+                          
+                          // Для прокси-режима добавляем заголовки
+                          if (currentPlaylist === 'proxy') {
+                              hls.config.xhrSetup = function(xhr, url) {
+                                  xhr.setRequestHeader('X-Forwarded-For', generateRandomIP());
+                              };
+                          }
+                          
+                          hls.loadSource(channel.url);
+                          hls.attachMedia(video);
+                          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                              video.play();
+                          });
+                      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                          video.src = channel.url;
+                          video.play();
+                      }
+                      
+                      renderChannels(document.getElementById('searchBox').value);
+                  }
+
+                  function generateRandomIP() {
+                      return `${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+                  }
+
+                  function switchPlaylist(type) {
+                      document.querySelectorAll('.playlist-btn').forEach(btn => btn.classList.remove('active'));
+                      event.target.classList.add('active');
+                      loadPlaylist(type);
+                  }
+
+                  function filterChannels() {
+                      const search = document.getElementById('searchBox').value;
+                      renderChannels(search);
+                  }
+
+                  // Загружаем стандартный плейлист при старте
+                  loadPlaylist('standard');
+              </script>
+          </body>
+          </html>
+          PLAYEREOF
+
+          # Заменяем URL в плеере
+          sed -i "s|PLAYLIST_STANDARD_URL|${{ steps.download.outputs.link_orig }}|g" _site/player/index.html
+          sed -i "s|PLAYLIST_PROXY_URL|${{ steps.download.outputs.link_proxy }}|g" _site/player/index.html
+
+          # Копируем плейлисты в сайт для прямого доступа
+          cp IPTV_WORLD.m3u _site/
+          cp IPTV_WORLD_PROXY.m3u _site/
+
+          echo "✅ Сайт создан"
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+
+      - name: Summary
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html README.md
-          git commit -m "Build: Deploy Player Interface and update README" || exit 0
-          git push origin main
+          echo "## 🚀 Обновление завершено!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Ссылки на плейлисты:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌐 **Standard:** ${{ steps.download.outputs.link_orig }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 **Proxy:** ${{ steps.download.outputs.link_proxy }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Сайт:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Главная:** https://${{ github.repository_owner }}.github.io/IPTVMIR/" >> $GITHUB_STEP_SUMMARY
+          echo "- **Плеер:** https://${{ github.repository_owner }}.github.io/IPTVMIR/player/" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Релиз:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Версия:** v${{ steps.timestamp.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Дата:** ${{ steps.timestamp.outputs.date }}" >> $GITHUB_STEP_SUMMARY
