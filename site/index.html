@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DropTV — Открытый IPTV проект</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>"/>
+<style>
+:root{--bg:#0a0a12;--card:#1a1a2e;--accent:#e94560;--a2:#0f3460;--tx:#e0e0e0;--mu:#888;--gr:#00ff88}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',sans-serif;min-height:100vh}
+
+nav{background:rgba(10,10,18,.96);backdrop-filter:blur(12px);position:sticky;top:0;z-index:99;
+  display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;
+  border-bottom:1px solid #1e1e30;flex-wrap:wrap;gap:.5rem}
+.logo{font-size:1.6rem;font-weight:900;color:var(--accent);letter-spacing:2px;text-decoration:none}
+.logo span{color:#fff}
+.nav-links{display:flex;gap:.6rem;flex-wrap:wrap}
+.nav-links a{color:var(--mu);text-decoration:none;font-weight:600;transition:.2s;
+  padding:.4rem .85rem;border-radius:7px;font-size:.88rem}
+.nav-links a:hover,.nav-links a.act{color:#fff;background:var(--a2)}
+.nav-links a.chk{color:var(--gr)!important;border:1px solid #00ff8840}
+.nav-links a.chk:hover{background:#00ff8820!important}
+
+.hero{text-align:center;padding:5rem 2rem 3rem;
+  background:radial-gradient(ellipse at center,#16213e 0%,var(--bg) 70%)}
+.hero h1{font-size:clamp(2.4rem,6vw,4.4rem);font-weight:900;line-height:1.1;margin-bottom:1rem}
+.drop{color:var(--accent)}
+.hero p{font-size:1.1rem;color:var(--mu);max-width:580px;margin:0 auto 2rem}
+.badge{display:inline-block;background:#00ff8820;color:var(--gr);border:1px solid var(--gr);
+  padding:.3rem 1rem;border-radius:20px;font-size:.82rem;font-weight:700;letter-spacing:1px;margin-bottom:2rem}
+
+.btns{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-bottom:2rem}
+.btn{padding:.8rem 1.7rem;border-radius:8px;font-weight:700;text-decoration:none;
+  transition:.2s;font-size:.93rem;border:none;cursor:pointer;display:inline-block}
+.btn-r{background:var(--accent);color:#fff}
+.btn-r:hover{background:#ff6b6b;transform:translateY(-2px)}
+.btn-o{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.btn-o:hover{background:var(--accent);color:#fff}
+.btn-g{background:#00ff8820;color:var(--gr);border:2px solid var(--gr)}
+.btn-g:hover{background:var(--gr);color:#000;transform:translateY(-2px)}
+
+.stats{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin:2rem 0}
+.stat{text-align:center}
+.snum{font-size:2.4rem;font-weight:900;color:var(--accent)}
+.slbl{font-size:.75rem;color:var(--mu);text-transform:uppercase;letter-spacing:1px}
+
+.box{max-width:750px;margin:0 auto 2rem;background:var(--card);
+  border:1px solid #2a2a3e;border-radius:12px;overflow:hidden}
+.boxh{background:var(--a2);padding:.55rem 1.2rem;display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:700}
+.dot{width:11px;height:11px;border-radius:50%}
+.dr{background:#ff5f57}.dy{background:#febc2e}.dg{background:#28c840}
+.boxurl{padding:1rem 1.2rem;font-family:monospace;font-size:.82rem;color:var(--gr);word-break:break-all;line-height:1.6}
+.cpbtn{display:block;width:calc(100% - 2.4rem);margin:.4rem 1.2rem .9rem;padding:.65rem;
+  background:#1e1e3a;border:1px solid #333;color:#fff;border-radius:8px;cursor:pointer;
+  font-weight:700;transition:.2s;font-size:.88rem}
+.cpbtn:hover{background:var(--accent)}
+
+.ibox{max-width:750px;margin:0 auto 2rem;background:linear-gradient(135deg,#1a1a2e,#16213e);
+  border:1px solid var(--a2);border-radius:12px;padding:1.2rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.ibox .ttl{font-size:1rem;font-weight:700;color:#fff}
+.ibox p{font-size:.88rem;color:var(--mu)}
+
+.chkbanner{max-width:750px;margin:0 auto 3rem;background:linear-gradient(135deg,#001a0a,#0a1a0a);
+  border:1px solid var(--gr);border-radius:12px;padding:1.4rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.chkbanner .ttl{font-size:1rem;font-weight:700;color:var(--gr)}
+.chkbanner p{font-size:.88rem;color:var(--mu)}
+
+.warn{max-width:750px;margin:0 auto;background:var(--card);border-radius:12px;
+  padding:1.5rem;border:1px solid #2a2a3e}
+.warn h3{margin-bottom:.8rem}
+.warn p{color:var(--mu);line-height:1.8;font-size:.93rem}
+
+.page{display:none;padding:3rem 2rem;max-width:900px;margin:0 auto}
+.page.act{display:block}
+.page h2{font-size:2rem;font-weight:900;margin-bottom:1.5rem;color:var(--accent)}
+.page p{color:var(--mu);line-height:1.8;margin-bottom:1rem}
+.page h3{font-size:1.15rem;font-weight:700;margin:1.5rem 0 .5rem;color:#fff}
+
+.apgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1rem;margin-top:1.5rem}
+.apc{background:var(--card);border:1px solid #2a2a3e;border-radius:12px;
+  padding:1.4rem;text-align:center;text-decoration:none;color:var(--tx);transition:.2s}
+.apc:hover{border-color:var(--accent);transform:translateY(-3px)}
+.apico{font-size:2.4rem;margin-bottom:.7rem}
+.apnm{font-weight:700;margin-bottom:.3rem}
+.appl{font-size:.78rem;color:var(--mu)}
+
+.ottbox{background:linear-gradient(135deg,#0f3460,#16213e);
+  border:1px solid #e9456040;border-radius:16px;padding:2rem;margin:2rem 0;text-align:center}
+.ottbox h3{font-size:1.35rem;margin-bottom:.8rem;color:#fff}
+.ottsteps{text-align:left;max-width:400px;margin:1rem auto 1.5rem}
+.ottsteps li{margin:.5rem 0;color:var(--mu);list-style:none;padding-left:1.5rem;position:relative}
+.ottsteps li::before{content:"→";position:absolute;left:0;color:var(--accent)}
+
+footer{text-align:center;padding:2rem;border-top:1px solid #1e1e30;color:var(--mu);font-size:.83rem}
+footer a{color:var(--accent);text-decoration:none}
+
+.timeline{position:relative;margin:1.5rem 0}
+.timeline::before{content:'';position:absolute;left:20px;top:0;bottom:0;width:2px;background:var(--a2)}
+.ti{padding-left:50px;margin-bottom:2rem;position:relative}
+.tdot{position:absolute;left:11px;top:4px;width:20px;height:20px;border-radius:50%;
+  background:var(--accent);border:3px solid var(--bg)}
+.tyr{font-weight:900;color:var(--accent);margin-bottom:.3rem}
+.ttx{color:var(--mu);line-height:1.7}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="#home" onclick="show('home')">DROP<span>TV</span></a>
+  <div class="nav-links">
+    <a href="#home"    onclick="show('home')"    class="act" id="n-home">Главная</a>
+    <a href="#history" onclick="show('history')"            id="n-history">История IPTV</a>
+    <a href="#myiptv"  onclick="show('myiptv')"             id="n-myiptv">Мой IPTV</a>
+    <a href="#apps"    onclick="show('apps')"               id="n-apps">Приложения</a>
+    <a href="https://IPTVRU2026.github.io/IPTVMIR/site/checker.html" class="chk" target="_blank">🔍 Checker</a>
+  </div>
+</nav>
+
+<!-- ══ ГЛАВНАЯ ══ -->
+<div id="home" class="page act">
+  <div class="hero">
+    <div class="badge">✅ 9 000+ каналов · Проверено · Обновлено</div>
+    <h1><span class="drop">Drop</span>TV<br/>Открытый IPTV проект</h1>
+    <p>Брутальный, солидарный, не жалеющий времени на проверку плейлистов проект. Каждый канал проверен личным IPTV чекером. Никакой рекламы. Никакой коммерции. Только каналы.</p>
+    <div class="btns">
+      <a class="btn btn-r" href="https://raw.githubusercontent.com/IPTVRU2026/IPTVMIR/main/IPTV_MEGA_PLAYLIST.m3u" download>📥 Скачать плейлист</a>
+      <a class="btn btn-o" onclick="show('apps')">📱 Как смотреть</a>
+      <a class="btn btn-g" href="https://IPTVRU2026.github.io/IPTVMIR/site/checker.html" target="_blank">🔍 Открыть Checker</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="snum">9 000+</div><div class="slbl">Каналов</div></div>
+      <div class="stat"><div class="snum">100%</div><div class="slbl">Проверено</div></div>
+      <div class="stat"><div class="snum">7</div><div class="slbl">Дней между апдейтами</div></div>
+      <div class="stat"><div class="snum">∞</div><div class="slbl">Бесплатно</div></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="boxh"><span class="dot dr"></span><span class="dot dy"></span><span class="dot dg"></span>&nbsp;RAW плейлист — прямая ссылка</div>
+    <div class="boxurl">https://raw.githubusercontent.com/IPTVRU2026/IPTVMIR/main/IPTV_MEGA_PLAYLIST.m3u</div>
+    <button class="cpbtn" onclick="copyUrl()">📋 Скопировать ссылку</button>
+  </div>
+
+  <div class="ibox">
+    <div>
+      <div class="ttl">🌐 Полный сайт проекта</div>
+      <p>История, мой IPTV, рекомендуемые приложения и OTTPlayer</p>
+    </div>
+    <a class="btn btn-r" href="https://IPTVRU2026.github.io/IPTVMIR/site/" target="_blank">Перейти на сайт →</a>
+  </div>
+
+  <div class="chkbanner">
+    <div>
+      <div class="ttl">🔍 IPTV Checker</div>
+      <p>Проверь работоспособность каналов онлайн прямо в браузере</p>
+    </div>
+    <a class="btn btn-g" href="https://IPTVRU2026.github.io/IPTVMIR/site/checker.html" target="_blank">Открыть Checker →</a>
+  </div>
+
+  <div class="warn">
+    <h3>⚠️ Важно знать</h3>
+    <p>Плейлист обновляется каждую <strong style="color:#fff">неделю</strong>.
+    Мы гарантируем безопасность — всё работает из <strong style="color:#fff">открытых источников</strong>.
+    Если плейлист временно перестал работать — подождите следующего обновления.
+    Мы не щадим времени на проверку каждого канала. Это наш принцип.</p>
+  </div>
+</div>
+
+<!-- ══ ИСТОРИЯ IPTV ══ -->
+<div id="history" class="page">
+  <h2>📡 История IPTV в России</h2>
+  <p>IPTV (Internet Protocol Television) — технология доставки телевизионного контента через интернет-протокол. Россия прошла долгий путь от аналогового эфира до потоковых плейлистов.</p>
+  <div class="timeline">
+    <div class="ti"><div class="tdot"></div>
+      <div class="tyr">2000-е — Зарождение</div>
+      <div class="ttx">Первые попытки трансляции ТВ через интернет. Низкие скорости, узкие каналы, пионеры экспериментируют с VLC и RealPlayer. Большинство потоков — кустарные, нестабильные.</div>
+    </div>
+    <div class="ti"><div class="tdot"></div>
+      <div class="tyr">2010-2014 — Взросление</div>
+      <div class="ttx">Появление формата M3U как стандарта плейлистов. Крупные провайдеры — Ростелеком, ЭР-Телеком — запускают официальные IPTV-сервисы. Скорость интернета растёт, качество SD становится нормой.</div>
+    </div>
+    <div class="ti"><div class="tdot"></div>
+      <div class="tyr">2015-2018 — Золотой век пиратских плейлистов</div>
+      <div class="ttx">Расцвет открытых IPTV плейлистов на форумах. Тысячи энтузиастов собирают коллекции каналов. Появляются IPTV-чекеры и автоматические парсеры. HD-контент становится доступным всем.</div>
+    </div>
+    <div class="ti"><div class="tdot"></div>
+      <div class="tyr">2019-2021 — Закручивание гаек</div>
+      <div class="ttx">Роскомнадзор начинает блокировки. Многие открытые плейлисты исчезают. Сообщество уходит в Telegram-каналы и GitHub.</div>
+    </div>
+    <div class="ti"><div class="tdot"></div>
+      <div class="tyr">2022-н.в. — Новая реальность</div>
+      <div class="ttx">Западные стриминги уходят из России, интерес к IPTV взрывается. GitHub становится главной площадкой для открытых плейлистов. Рождается DropTV — проект солидарности.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ МОЙ IPTV ══ -->
+<div id="myiptv" class="page">
+  <h2>🔥 Мой IPTV — DropTV</h2>
+  <p>DropTV — это не просто плейлист. Это <strong>открытый солидарный проект</strong>, который не щадит времени на проверку каждого канала. Мы собираем только живые, рабочие потоки из открытых источников.</p>
+  <h3>Наши принципы</h3>
+  <p>🛡️ <strong>Безопасность</strong> — только открытые источники, никакого вредоносного ПО</p>
+  <p>✅ <strong>Проверено</strong> — каждый канал прогнан через собственный IPTV чекер</p>
+  <p>🔄 <strong>Актуальность</strong> — еженедельные обновления без пропусков</p>
+  <p>🆓 <strong>Бесплатно навсегда</strong> — был, есть и останется бесплатным</p>
+  <p>🤝 <strong>Солидарность</strong> — делимся с сообществом, принимаем вклад каждого</p>
+  <h3>Состав плейлиста</h3>
+  <p>Федеральное и региональное ТВ, новостные, спортивные, детские, кинематографические, познавательные и развлекательные каналы. Всего <strong style="color:var(--gr)">9 000+ позиций</strong>, каждая проверена.</p>
+  <div class="box" style="margin-top:2rem">
+    <div class="boxh"><span class="dot dr"></span><span class="dot dy"></span><span class="dot dg"></span>&nbsp;Прямая RAW ссылка</div>
+    <div class="boxurl">https://raw.githubusercontent.com/IPTVRU2026/IPTVMIR/main/IPTV_MEGA_PLAYLIST.m3u</div>
+    <button class="cpbtn" onclick="copyUrl()">📋 Скопировать</button>
+  </div>
+</div>
+
+<!-- ══ ПРИЛОЖЕНИЯ ══ -->
+<div id="apps" class="page">
+  <h2>📱 Приложения для просмотра</h2>
+  <p>Используйте любое удобное приложение — просто добавьте RAW ссылку на плейлист.</p>
+  <div class="ottbox">
+    <h3>⭐ Рекомендуем OTTPlayer</h3>
+    <p style="color:var(--mu);margin-bottom:1rem">Лучший способ смотреть DropTV. Регистрируйтесь на сайте, добавляйте плейлист, заходите в приложение по коду.</p>
+    <ul class="ottsteps">
+      <li>Зарегистрируйтесь на ottplayer.app</li>
+      <li>В личном кабинете добавьте плейлист по ссылке</li>
+      <li>Скачайте приложение на ваше устройство</li>
+      <li>Войдите в приложение по коду с сайта</li>
+    </ul>
+    <a class="btn btn-r" href="https://ottplayer.es/" target="_blank">Перейти на OTTPlayer →</a>
+  </div>
+  <div class="apgrid">
+    <a class="apc" href="https://ottplayer.es/" target="_blank"><div class="apico">📺</div><div class="apnm">OTTPlayer</div><div class="appl">Android · iOS · SmartTV · Web</div></a>
+    <a class="apc" href="https://www.videolan.org/vlc/" target="_blank"><div class="apico">🦺</div><div class="apnm">VLC Media Player</div><div class="appl">Windows · Mac · Android · iOS</div></a>
+    <a class="apc" href="https://kodi.tv/" target="_blank"><div class="apico">🎯</div><div class="apnm">Kodi</div><div class="appl">Windows · Mac · Android · Linux</div></a>
+    <a class="apc" href="https://www.tivimate.com/" target="_blank"><div class="apico">🎬</div><div class="apnm">TiviMate</div><div class="appl">Android TV · Fire TV</div></a>
+    <a class="apc" href="https://play.google.com/store/apps/details?id=is.xyz.mpv" target="_blank"><div class="apico">▶️</div><div class="apnm">MPV Remote</div><div class="appl">Android</div></a>
+    <a class="apc" href="https://sparkplayer.net/" target="_blank"><div class="apico">⚡</div><div class="apnm">Spark Player</div><div class="appl">Android · iOS</div></a>
+    <a class="apc" href="https://mxplayer.in/" target="_blank"><div class="apico">🔵</div><div class="apnm">MX Player</div><div class="appl">Android · iOS</div></a>
+    <a class="apc" href="https://smartiptv.net/" target="_blank"><div class="apico">🖥️</div><div class="apnm">Smart IPTV</div><div class="appl">SmartTV Samsung · LG</div></a>
+  </div>
+  <h3 style="margin-top:2rem">Как добавить плейлист</h3>
+  <p>Откройте настройки → добавьте плейлист/источник → вставьте ссылку:</p>
+  <div class="box" style="margin-top:1rem">
+    <div class="boxh"><span class="dot dr"></span><span class="dot dy"></span><span class="dot dg"></span>&nbsp;Ссылка для плейера</div>
+    <div class="boxurl">https://raw.githubusercontent.com/IPTVRU2026/IPTVMIR/main/IPTV_MEGA_PLAYLIST.m3u</div>
+    <button class="cpbtn" onclick="copyUrl()">📋 Скопировать ссылку</button>
+  </div>
+</div>
+
+<footer>
+  <p>© 2024 DropTV — Открытый солидарный IPTV проект</p>
+  <p style="margin-top:.5rem">
+    <a href="https://github.com/IPTVRU2026/IPTVMIR" target="_blank">GitHub</a> ·
+    <a href="https://ottplayer.es/" target="_blank">OTTPlayer</a> ·
+    <a href="https://IPTVRU2026.github.io/IPTVMIR/site/checker.html" target="_blank">🔍 Checker</a>
+  </p>
+</footer>
+
+<script>
+const RAW = "https://raw.githubusercontent.com/IPTVRU2026/IPTVMIR/main/IPTV_MEGA_PLAYLIST.m3u";
+function show(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('act'));
+  document.querySelectorAll('.nav-links a:not(.chk)').forEach(a=>a.classList.remove('act'));
+  document.getElementById(id)?.classList.add('act');
+  document.getElementById('n-'+id)?.classList.add('act');
+  window.scrollTo(0,0);
+}
+function copyUrl() {
+  navigator.clipboard.writeText(RAW).then(()=>{
+    const b=event.target; b.textContent='✅ Скопировано!';
+    setTimeout(()=>b.textContent='📋 Скопировать ссылку',2000);
+  });
+}
+window.addEventListener('hashchange',()=>{
+  const id=location.hash.slice(1)||'home';
+  if(document.getElementById(id)) show(id);
+});
+if(location.hash) show(location.hash.slice(1));
+</script>
+</body>
+</html>
