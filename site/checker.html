@@ -1,42 +1,1996 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>DropTV — Checker</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>INDEX33 — IPTV Checker</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.14/dist/hls.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--bg:#0a0a12;--gr:#00ff88;--mu:#888;--ac:#e94560}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:#e0e0e0;font-family:'Segoe UI',sans-serif;min-height:100vh}
-nav{background:rgba(10,10,18,.96);backdrop-filter:blur(12px);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:1rem 2rem;border-bottom:1px solid #1e1e30}
-.logo{font-size:1.6rem;font-weight:900;color:var(--ac);letter-spacing:2px;text-decoration:none}
-.logo span{color:#fff}
-.back{color:var(--mu);text-decoration:none;font-weight:600;
-  padding:.4rem .8rem;border-radius:6px;transition:.2s}
-.back:hover{color:#fff;background:#1a1a2e}
+/* ══════════════════════════════════════════
+   INDEX33 — IPTV CHECKER
+   Aesthetic: Military-grade terminal meets
+   cinematic HUD. Amber + cyan on deep black.
+══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --black: #000;
+  --bg:    #04060a;
+  --bg1:   #070b11;
+  --bg2:   #0b1018;
+  --bg3:   #101620;
+  --bg4:   #141c28;
+
+  --amber:  #ffb700;
+  --amber2: #ff8c00;
+  --cyan:   #00e5ff;
+  --cyan2:  #0099bb;
+  --green:  #39ff14;
+  --red:    #ff2244;
+  --purple: #c044ff;
+
+  --txt:    #d4dde8;
+  --txt2:   #637080;
+  --txt3:   #2a3848;
+
+  --mono: 'Share Tech Mono', monospace;
+  --head: 'Exo 2', sans-serif;
+
+  --r: 4px;
+  --r2: 8px;
+
+  --ga: 0 0 12px rgba(255,183,0,.4), 0 0 30px rgba(255,183,0,.15);
+  --gc: 0 0 12px rgba(0,229,255,.4), 0 0 30px rgba(0,229,255,.15);
+  --gg: 0 0 12px rgba(57,255,20,.4), 0 0 30px rgba(57,255,20,.15);
+  --gr: 0 0 12px rgba(255,34,68,.4), 0 0 30px rgba(255,34,68,.15);
+}
+
+html { font-size: 13px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--txt);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* grid background */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+/* scan lines */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent, transparent 2px,
+    rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 4px
+  );
+  pointer-events: none; z-index: 0;
+}
+
+/* ══ HEADER ══ */
+header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(4,6,10,.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0,229,255,.15);
+  height: 56px;
+  display: flex; align-items: center;
+  padding: 0 16px; gap: 12px;
+}
+
+.logo-mark {
+  font-family: var(--head);
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--amber);
+  text-shadow: var(--ga);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.logo-mark sup {
+  font-size: 10px;
+  color: var(--cyan);
+  letter-spacing: 1px;
+  vertical-align: super;
+  text-shadow: var(--gc);
+}
+
+.hdr-sep { width: 1px; height: 28px; background: var(--bg4); flex-shrink: 0; }
+
+.hdr-nav {
+  display: flex; gap: 2px;
+  overflow-x: auto; flex: 1;
+}
+
+.hdr-tab {
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--txt2);
+  background: none; border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+  text-transform: uppercase;
+}
+
+.hdr-tab:hover { color: var(--txt); background: var(--bg3); }
+.hdr-tab.on { color: var(--amber); background: rgba(255,183,0,.08); }
+
+.hdr-right {
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0; margin-left: auto;
+}
+
+.lang-sw {
+  display: flex; gap: 2px;
+  background: var(--bg2);
+  border: 1px solid var(--bg4);
+  border-radius: var(--r);
+  padding: 2px;
+}
+
+.lang-btn {
+  padding: 4px 9px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  border: none; background: none;
+  color: var(--txt2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.lang-btn.on { background: var(--amber); color: #000; }
+
+/* ══ LAYOUT ══ */
+.app {
+  position: relative; z-index: 1;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 0;
+}
+
+@media(max-width:768px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: static !important; height: auto !important; }
+}
+
+/* ══ SIDEBAR ══ */
+.sidebar {
+  background: var(--bg1);
+  border-right: 1px solid rgba(0,229,255,.08);
+  height: calc(100vh - 56px);
+  position: sticky; top: 56px;
+  overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column;
+}
+
+.sb-section {
+  border-bottom: 1px solid var(--bg3);
+  padding: 14px 14px;
+}
+
+.sb-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.sb-label::after {
+  content: ''; flex: 1;
+  height: 1px; background: var(--bg4);
+}
+
+/* ══ FORM ══ */
+.fld { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.fld:last-child { margin-bottom: 0; }
+
+.fld-lbl {
+  font-size: 9px; letter-spacing: 1.5px;
+  color: var(--txt3); text-transform: uppercase;
+}
+
+input[type=text], input[type=file], select {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--bg4);
+  border-radius: var(--r);
+  color: var(--txt);
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  appearance: none;
+}
+
+input[type=text]::placeholder { color: var(--txt3); }
+input[type=text]:focus, select:focus {
+  border-color: var(--cyan2);
+  box-shadow: 0 0 0 2px rgba(0,229,255,.08);
+}
+
+input[type=file] { padding: 6px 10px; cursor: pointer; }
+select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23637080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+
+/* ══ BUTTONS ══ */
+.btn {
+  width: 100%;
+  padding: 9px 12px;
+  border: none; border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all .2s;
+  margin-bottom: 5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background .15s;
+}
+
+.btn:hover::after { background: rgba(255,255,255,.05); }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .3; cursor: not-allowed; }
+.btn:last-child { margin-bottom: 0; }
+
+.btn-amber { background: rgba(255,183,0,.12); color: var(--amber); border: 1px solid rgba(255,183,0,.35); }
+.btn-amber:not(:disabled):hover { box-shadow: var(--ga); }
+.btn-red   { background: rgba(255,34,68,.1);  color: var(--red);   border: 1px solid rgba(255,34,68,.3); }
+.btn-red:not(:disabled):hover { box-shadow: var(--gr); }
+.btn-cyan  { background: rgba(0,229,255,.08); color: var(--cyan);  border: 1px solid rgba(0,229,255,.25); }
+.btn-cyan:not(:disabled):hover { box-shadow: var(--gc); }
+.btn-green { background: rgba(57,255,20,.08); color: var(--green); border: 1px solid rgba(57,255,20,.25); }
+.btn-green:not(:disabled):hover { box-shadow: var(--gg); }
+.btn-ghost { background: transparent; color: var(--txt2); border: 1px solid var(--bg4); }
+.btn-ghost:not(:disabled):hover { color: var(--txt); border-color: var(--txt2); }
+
+/* ══ SPEED PRESETS ══ */
+.speed-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.spd-btn {
+  padding: 8px 6px;
+  border: 1px solid var(--bg4);
+  border-radius: var(--r);
+  background: var(--bg2);
+  color: var(--txt2);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .5px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.spd-btn .spd-name { font-weight: 700; font-size: 11px; display: block; }
+.spd-btn .spd-info { font-size: 9px; color: var(--txt3); display: block; margin-top: 2px; }
+
+.spd-btn:hover { border-color: var(--amber2); color: var(--amber); }
+.spd-btn.on { border-color: var(--amber); color: var(--amber); background: rgba(255,183,0,.08); box-shadow: var(--ga); }
+
+/* ══ SPEED METER ══ */
+.spd-meter { margin-top: 8px; }
+.spd-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.spd-label { font-size: 9px; letter-spacing: 1.5px; color: var(--txt3); text-transform: uppercase; }
+.spd-val { font-size: 14px; font-weight: 700; color: var(--amber); }
+.spd-bar-bg { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.spd-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber2), var(--amber)); border-radius: 2px; transition: width .4s ease; box-shadow: var(--ga); }
+
+/* ══ MINI LIST ══ */
+.mini-list { list-style: none; max-height: 120px; overflow-y: auto; }
+.mini-list li {
+  padding: 5px 8px; border-radius: var(--r);
+  font-size: 11px; color: var(--txt2);
+  cursor: pointer; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  transition: background .1s, color .1s;
+}
+.mini-list li:hover { background: var(--bg3); color: var(--txt); }
+
+/* ══ BLOB PANEL ══ */
+.blob-panel {
+  display: none;
+  background: rgba(57,255,20,.05);
+  border: 1px solid rgba(57,255,20,.2);
+  border-radius: var(--r);
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.blob-url {
+  color: var(--green);
+  font-size: 10px;
+  word-break: break-all;
+  line-height: 1.5;
+  display: block;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+/* ══ MAIN PANEL ══ */
+.main-panel {
+  display: flex; flex-direction: column;
+  min-height: 0; overflow: hidden;
+}
+
+/* ══ STATS + TIMER BAR ══ */
+.stats-bar {
+  background: var(--bg1);
+  border-bottom: 1px solid rgba(0,229,255,.08);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.stat-item {
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+  border-right: 1px solid var(--bg3);
+  flex-shrink: 0;
+}
+
+.stat-item:first-child { padding-left: 0; }
+.stat-item:last-child { border-right: none; }
+
+.stat-lbl {
+  font-size: 8px; letter-spacing: 2px;
+  color: var(--txt3); text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.stat-val {
+  font-family: var(--head);
+  font-size: 20px; font-weight: 700;
+  line-height: 1;
+}
+
+.sv-total  { color: var(--cyan);  text-shadow: var(--gc); }
+.sv-ok     { color: var(--green); text-shadow: var(--gg); }
+.sv-dead   { color: var(--red);   text-shadow: var(--gr); }
+.sv-rem    { color: var(--amber); text-shadow: var(--ga); }
+
+/* ══ TIMER ══ */
+.timer-wrap {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  flex-shrink: 0;
+}
+
+.timer-block {
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+
+.timer-label {
+  font-size: 8px; letter-spacing: 2px;
+  color: var(--txt3); text-transform: uppercase;
+  margin-bottom: 1px;
+}
+
+.timer-digits {
+  font-family: var(--head);
+  font-size: 24px; font-weight: 700;
+  color: var(--amber);
+  text-shadow: var(--ga);
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.eta-val {
+  font-size: 10px; color: var(--txt2);
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+/* Info button near timer */
+.timer-info-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(0,229,255,.08);
+  border: 1px solid rgba(0,229,255,.25);
+  color: var(--cyan);
+  font-family: var(--head);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+
+.timer-info-btn:hover { background: rgba(0,229,255,.16); box-shadow: var(--gc); }
+
+/* ══ PROGRESS BAR ══ */
+.prog-wrap {
+  height: 2px; background: var(--bg3);
+  flex-shrink: 0; display: none;
+  position: relative;
+}
+
+.prog-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--amber2), var(--amber), var(--cyan));
+  transition: width .3s linear;
+  box-shadow: 0 0 8px var(--amber);
+}
+
+/* ══ FILTER BAR ══ */
+.filter-bar {
+  background: var(--bg1);
+  border-bottom: 1px solid rgba(0,229,255,.06);
+  padding: 8px 16px;
+  display: flex; gap: 8px; align-items: center;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--bg4);
+  border-radius: 20px;
+  background: none;
+  color: var(--txt2);
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: .5px;
+  cursor: pointer; white-space: nowrap;
+  transition: all .15s;
+}
+
+.filter-chip:hover { color: var(--txt); border-color: var(--txt3); }
+.filter-chip.on { color: var(--amber); border-color: var(--amber); background: rgba(255,183,0,.06); }
+
+.filter-search {
+  flex: 1; min-width: 140px; max-width: 280px;
+  padding: 5px 10px !important; font-size: 11px !important;
+}
+
+/* ══ CONTENT PANES ══ */
+.pane { display: none; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; }
+.pane.on { display: flex; }
+
+/* ══ TABLE ══ */
+.tbl-scroll {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  min-height: 0;
+}
+
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  background: var(--bg2);
+  padding: 8px 12px;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 2px; color: var(--txt3);
+  text-transform: uppercase;
+  text-align: left;
+  position: sticky; top: 0; z-index: 2;
+  border-bottom: 1px solid var(--bg3);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--bg2);
+  transition: background .1s;
+}
+
+tbody tr:hover { background: var(--bg2); }
+
+td {
+  padding: 7px 12px; font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.td-logo { width: 46px; padding: 4px 12px; max-width: 46px; }
+.td-actions { width: 100px; max-width: 100px; }
+
+.ch-logo {
+  width: 28px; height: 28px;
+  object-fit: cover; border-radius: 3px;
+  background: var(--bg2); display: block;
+}
+
+/* ══ STATUS BADGES ══ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 3px;
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+}
+
+.b-ok  { background: rgba(57,255,20,.08); color: var(--green); border: 1px solid rgba(57,255,20,.2); }
+.b-err { background: rgba(255,34,68,.08); color: var(--red);   border: 1px solid rgba(255,34,68,.2); }
+.b-chk { background: rgba(255,183,0,.06); color: var(--amber); border: 1px solid rgba(255,183,0,.2); animation: blink 1s ease-in-out infinite; }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ══ TABLE ACTION BUTTONS ══ */
+.act-btns { display: flex; gap: 4px; }
+
+.act-btn {
+  width: 26px; height: 26px;
+  border: none; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 12px;
+  transition: all .15s; flex-shrink: 0;
+}
+
+.act-btn:hover { transform: scale(1.2); }
+.ab-play { background: rgba(0,229,255,.12); color: var(--cyan); border: 1px solid rgba(0,229,255,.25); }
+.ab-ext  { background: rgba(57,255,20,.08); color: var(--green); border: 1px solid rgba(57,255,20,.2); }
+.ab-fav  { background: rgba(255,183,0,.08); color: var(--amber); border: 1px solid rgba(255,183,0,.2); }
+.ab-fav.on { background: rgba(255,183,0,.2); }
+
+/* ══ PAGER ══ */
+.pager {
+  background: var(--bg1);
+  border-top: 1px solid var(--bg3);
+  padding: 8px 16px;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+
+.pg-btn {
+  padding: 5px 12px;
+  background: var(--bg2); border: 1px solid var(--bg4);
+  border-radius: var(--r); color: var(--txt2);
+  font-family: var(--mono); font-size: 11px;
+  cursor: pointer; transition: all .15s;
+}
+
+.pg-btn:hover:not(:disabled) { border-color: var(--cyan2); color: var(--cyan); }
+.pg-btn:disabled { opacity: .3; cursor: not-allowed; }
+.pg-info { font-size: 10px; color: var(--txt2); flex: 1; text-align: center; }
+.pg-size { padding: 5px 8px; background: var(--bg2); border: 1px solid var(--bg4); border-radius: var(--r); color: var(--txt2); font-family: var(--mono); font-size: 11px; width: auto; }
+
+/* ══ COMPARE AREA ══ */
+.compare-area { padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+
+/* ══ VIDEO MINI PLAYER ══ */
+#miniPlayer {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  width: 380px;
+  background: var(--bg);
+  border: 1px solid var(--amber);
+  border-radius: var(--r2);
+  box-shadow: var(--ga), 0 20px 60px rgba(0,0,0,.8);
+  z-index: 500;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  resize: both;
+  min-width: 280px; min-height: 200px;
+}
+
+#miniPlayer.show { display: flex; }
+
+.mini-hdr {
+  background: var(--bg2);
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--bg3);
+  cursor: move;
+  flex-shrink: 0;
+}
+
+.mini-title {
+  font-size: 11px; color: var(--amber);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.mini-ctrl { display: flex; gap: 5px; }
+
+.mini-btn {
+  width: 22px; height: 22px;
+  border: 1px solid var(--bg4);
+  border-radius: 3px; background: var(--bg3);
+  color: var(--txt2); font-size: 11px;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  transition: all .15s;
+}
+
+.mini-btn:hover { border-color: var(--red); color: var(--red); }
+
+#miniVideo {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  display: block;
+}
+
+.mini-footer {
+  padding: 6px 12px;
+  font-size: 10px; color: var(--txt3);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+
+.mini-status { flex: 1; }
+
+.mini-status.ok   { color: var(--green); }
+.mini-status.err  { color: var(--red); }
+.mini-status.load { color: var(--amber); animation: blink 1s infinite; }
+
+/* ══ FULLSCREEN VIDEO ══ */
+#fullPlayer {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.95);
+  z-index: 600;
+  display: none;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+}
+
+#fullPlayer.show { display: flex; }
+
+.fp-box {
+  position: relative;
+  width: 92%; max-width: 980px;
+  background: #000;
+  border: 1px solid var(--amber);
+  border-radius: var(--r2);
+  box-shadow: var(--ga);
+}
+
+.fp-hdr {
+  display: flex; align-items: center;
+  padding: 8px 14px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--bg3);
+}
+
+.fp-title { color: var(--amber); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.fp-close {
+  width: 28px; height: 28px;
+  background: rgba(255,34,68,.15);
+  border: 1px solid rgba(255,34,68,.3);
+  border-radius: 3px; color: var(--red);
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+
+.fp-close:hover { background: var(--red); color: #fff; }
+
+#fullVideo {
+  width: 100%; height: auto;
+  max-height: 85vh; display: block;
+}
+
+/* ══ MODAL ══ */
+#modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 700;
+  display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+#modal.show { display: flex; }
+
+.modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--bg4);
+  border-radius: var(--r2);
+  padding: 28px 32px;
+  max-width: 420px; width: 92%;
+  text-align: center;
+  animation: popIn .2s ease;
+  white-space: pre-line;
+}
+
+@keyframes popIn { from{transform:scale(.87);opacity:0} to{transform:scale(1);opacity:1} }
+
+.modal-title {
+  font-family: var(--head);
+  font-size: 18px; font-weight: 700;
+  letter-spacing: 2px; margin-bottom: 12px;
+}
+
+.mt-ok  { color: var(--green); text-shadow: var(--gg); }
+.mt-err { color: var(--red);   text-shadow: var(--gr); }
+.mt-inf { color: var(--cyan);  text-shadow: var(--gc); }
+.mt-amb { color: var(--amber); text-shadow: var(--ga); }
+
+.modal-msg { font-size: 12px; color: var(--txt2); line-height: 1.7; margin-bottom: 22px; }
+
+/* ══ INFO MODAL (timer button) ══ */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.info-cell {
+  background: var(--bg3);
+  border: 1px solid var(--bg4);
+  border-radius: var(--r);
+  padding: 10px 12px;
+}
+
+.info-cell-lbl {
+  font-size: 9px; letter-spacing: 1.5px;
+  color: var(--txt3); text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.info-cell-val {
+  font-family: var(--head);
+  font-size: 18px; font-weight: 700;
+}
+
+/* ══ TEST MODAL ══ */
+.test-channels { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; text-align: left; }
+
+.test-ch-row {
+  background: var(--bg3);
+  border: 1px solid var(--bg4);
+  border-radius: var(--r);
+  padding: 8px 10px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.test-ch-name { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.test-ch-st { font-size: 10px; }
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--txt3); }
+
+/* ══ MOBILE ══ */
+@media(max-width:768px) {
+  header { padding: 0 10px; }
+  .logo-mark { font-size: 18px; }
+  .hdr-nav { display: none; }
+  .stats-bar { padding: 8px 10px; gap: 0; }
+  .stat-item { padding: 0 10px; }
+  .stat-val { font-size: 16px; }
+  .timer-digits { font-size: 18px; }
+  .filter-bar { padding: 6px 10px; }
+  td { padding: 5px 8px; }
+  #miniPlayer { width: calc(100vw - 20px); right: 10px; bottom: 10px; }
+  .info-grid { grid-template-columns: 1fr; }
+}
+
+@media(max-width:480px) {
+  .stat-item:nth-child(n+4) { display: none; }
+  .timer-wrap { flex-direction: column; gap: 4px; align-items: flex-end; }
+}
 </style>
 </head>
 <body>
 
-<nav>
-  <a class="logo" href="https://IPTVRU2026.github.io/IPTVMIR/site/">DROP<span>TV</span></a>
-  <a class="back" href="https://IPTVRU2026.github.io/IPTVMIR/site/">← На главную</a>
-</nav>
+<!-- ══ VIDEO: MINI PLAYER ══ -->
+<div id="miniPlayer">
+  <div class="mini-hdr" id="miniDragHdr">
+    <span class="mini-title" id="miniTitle">—</span>
+    <div class="mini-ctrl">
+      <button class="mini-btn" id="miniExpand" title="Развернуть">⛶</button>
+      <button class="mini-btn" id="miniClose" title="Закрыть">✕</button>
+    </div>
+  </div>
+  <video id="miniVideo" playsinline autoplay controls crossorigin="anonymous"></video>
+  <div class="mini-footer">
+    <span class="mini-status load" id="miniStatus">Загрузка...</span>
+    <button class="mini-btn" onclick="openExtUrl(document.getElementById('miniVideo').src||'')" style="width:auto;padding:2px 8px;font-size:10px;">↗ EXT</button>
+  </div>
+</div>
 
-<!-- ══════════════════════════════════════════════════
-     ВАШ КОД ЧЕКЕРА — ДОБАВЬТЕ СЮДА
-     Файл: site/checker.html
+<!-- ══ VIDEO: FULL PLAYER ══ -->
+<div id="fullPlayer">
+  <div class="fp-box">
+    <div class="fp-hdr">
+      <span class="fp-title" id="fpTitle">—</span>
+      <button class="fp-close" id="fpClose">✕</button>
+    </div>
+    <video id="fullVideo" playsinline autoplay controls crossorigin="anonymous"></video>
+  </div>
+</div>
 
-     Доступен ТОЛЬКО онлайн через GitHub Pages:
-     https://IPTVRU2026.github.io/IPTVMIR/site/checker.html
+<!-- ══ MODAL ══ -->
+<div id="modal">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-title" id="modalTitle">—</div>
+    <div class="modal-msg" id="modalMsg"></div>
+    <div id="modalExtra"></div>
+    <button class="btn btn-amber" id="modalOk" style="width:auto;padding:8px 32px;margin:0 auto">OK</button>
+  </div>
+</div>
 
-     При локальном запуске (open file://) внешние
-     ресурсы (API, fetch и т.д.) не будут работать —
-     это защищает чекер от офлайн-копирования.
-══════════════════════════════════════════════════ -->
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo-mark">INDEX<sup>33</sup></div>
+  <div class="hdr-sep"></div>
+  <nav class="hdr-nav">
+    <button class="hdr-tab on" data-tab="results"  data-en="Results"  data-ru="Результаты">Результаты</button>
+    <button class="hdr-tab"   data-tab="favorites" data-en="Favorites" data-ru="Избранное">Избранное</button>
+    <button class="hdr-tab"   data-tab="compare"   data-en="Compare"   data-ru="Сравнение">Сравнение</button>
+  </nav>
+  <div class="hdr-right">
+    <div class="lang-sw">
+      <button class="lang-btn on" data-lang="ru">RU</button>
+      <button class="lang-btn"    data-lang="en">EN</button>
+    </div>
+  </div>
+</header>
 
+<!-- ══ APP ══ -->
+<div class="app">
+
+<!-- ════ SIDEBAR ════ -->
+<aside class="sidebar">
+
+  <!-- SOURCE -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="Source" data-ru="Источник">Источник</div>
+    <div class="fld">
+      <span class="fld-lbl" data-en="File (M3U/TXT/JSON)" data-ru="Файл (M3U/TXT/JSON)">Файл (M3U/TXT/JSON)</span>
+      <input type="file" id="fileInput" accept=".m3u,.m3u8,.txt,.json">
+    </div>
+    <div class="fld">
+      <span class="fld-lbl" data-en="Playlist URL" data-ru="URL плейлиста">URL плейлиста</span>
+      <input type="text" id="m3uUrl" placeholder="https://...playlist.m3u">
+    </div>
+  </div>
+
+  <!-- SPEED -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="Speed Mode" data-ru="Режим скорости">Режим скорости</div>
+    <div class="speed-grid">
+      <button class="spd-btn" data-t="500"  data-c="200" data-key="ultra">
+        <span class="spd-name">⚡ ULTRA</span>
+        <span class="spd-info" data-en="200 threads / 0.5s" data-ru="200 потоков / 0.5с">200 потоков / 0.5с</span>
+      </button>
+      <button class="spd-btn on" data-t="1500" data-c="100" data-key="turbo">
+        <span class="spd-name">⚡ TURBO</span>
+        <span class="spd-info" data-en="100 threads / 1.5s" data-ru="100 потоков / 1.5с">100 потоков / 1.5с</span>
+      </button>
+      <button class="spd-btn" data-t="3000" data-c="50" data-key="normal">
+        <span class="spd-name">▶ NORMAL</span>
+        <span class="spd-info" data-en="50 threads / 3s" data-ru="50 потоков / 3с">50 потоков / 3с</span>
+      </button>
+      <button class="spd-btn" data-t="7000" data-c="20" data-key="safe">
+        <span class="spd-name">🛡 SAFE</span>
+        <span class="spd-info" data-en="20 threads / 7s" data-ru="20 потоков / 7с">20 потоков / 7с</span>
+      </button>
+    </div>
+    <div class="fld">
+      <span class="fld-lbl" data-en="Custom timeout (ms)" data-ru="Таймаут (мс)">Таймаут (мс)</span>
+      <select id="timeoutSel">
+        <option value="500">500 мс</option>
+        <option value="1000">1000 мс</option>
+        <option value="1500" selected>1500 мс</option>
+        <option value="3000">3000 мс</option>
+        <option value="5000">5000 мс</option>
+        <option value="7000">7000 мс</option>
+      </select>
+    </div>
+    <div class="fld">
+      <span class="fld-lbl" data-en="Parallel threads" data-ru="Параллельных потоков">Параллельных потоков</span>
+      <select id="concurrencySel">
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="150">150</option>
+        <option value="200">200</option>
+      </select>
+    </div>
+    <div class="spd-meter">
+      <div class="spd-row">
+        <span class="spd-label" data-en="Speed" data-ru="Скорость">Скорость</span>
+        <span class="spd-val" id="spdVal">— ch/s</span>
+      </div>
+      <div class="spd-bar-bg"><div class="spd-bar-fill" id="spdBar"></div></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="Controls" data-ru="Управление">Управление</div>
+    <button class="btn btn-amber" id="btnCheck">▶ <span data-en="Start Check" data-ru="Запустить проверку">Запустить проверку</span></button>
+    <button class="btn btn-red"   id="btnStop"   disabled>■ <span data-en="Stop" data-ru="Стоп">Стоп</span></button>
+    <button class="btn btn-cyan"  id="btnRefresh" disabled>↻ <span data-en="Refresh Status" data-ru="Обновить статус">Обновить статус</span></button>
+    <button class="btn btn-ghost" id="btnTest">🧪 <span data-en="Quick Test (3 random)" data-ru="Быстрый тест (3 рандомных)">Быстрый тест (3 рандомных)</span></button>
+    <button class="btn btn-ghost" id="btnClear">✕ <span data-en="Clear All" data-ru="Очистить всё">Очистить всё</span></button>
+  </div>
+
+  <!-- EXPORT -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="Export" data-ru="Экспорт">Экспорт</div>
+    <div class="fld">
+      <span class="fld-lbl" data-en="Format" data-ru="Формат">Формат</span>
+      <select id="exportFmt">
+        <option value="m3u">M3U playlist</option>
+        <option value="txt">TXT (M3U format)</option>
+        <option value="json">JSON</option>
+      </select>
+    </div>
+    <button class="btn btn-green" id="btnExport" disabled>⬇ <span data-en="Download Working" data-ru="Скачать рабочие">Скачать рабочие</span></button>
+    <button class="btn btn-ghost" id="btnPdf">📄 PDF <span data-en="Report" data-ru="Отчёт">Отчёт</span></button>
+
+    <!-- BLOB LINK -->
+    <div class="blob-panel" id="blobPanel">
+      <span class="fld-lbl" data-en="Playlist link (for VLC/Kodi)" data-ru="Ссылка на плейлист (для VLC/Kodi)">Ссылка на плейлист (для VLC/Kodi)</span>
+      <a class="blob-url" id="blobLink" href="#" target="_blank">—</a>
+      <button class="btn btn-ghost" id="btnCopyBlob" style="margin-bottom:5px;font-size:10px">📋 <span data-en="Copy Link" data-ru="Копировать ссылку">Копировать ссылку</span></button>
+      <button class="btn btn-ghost" id="btnRevokeBlob" style="font-size:10px">✕ <span data-en="Delete Link" data-ru="Удалить ссылку">Удалить ссылку</span></button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="History" data-ru="История">История</div>
+    <ul class="mini-list" id="histList"></ul>
+  </div>
+
+  <!-- GROUPS -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="Groups" data-ru="Группы">Группы</div>
+    <ul class="mini-list" id="groupsList"></ul>
+  </div>
+
+</aside>
+
+<!-- ════ MAIN ════ -->
+<div class="main-panel">
+
+  <!-- STATS + TIMER -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-lbl" data-en="Total" data-ru="Всего">Всего</span>
+      <span class="stat-val sv-total" id="sTot">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-lbl" data-en="Working" data-ru="Рабочих">Рабочих</span>
+      <span class="stat-val sv-ok" id="sOk">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-lbl" data-en="Dead" data-ru="Мёртвых">Мёртвых</span>
+      <span class="stat-val sv-dead" id="sDead">0</span>
+    </div>
+    <div class="stat-item" id="remItem" style="display:none">
+      <span class="stat-lbl" data-en="Left" data-ru="Осталось">Осталось</span>
+      <span class="stat-val sv-rem" id="sRem">0</span>
+    </div>
+
+    <div class="timer-wrap">
+      <div class="timer-block">
+        <span class="timer-label" data-en="Elapsed" data-ru="Прошло">Прошло</span>
+        <span class="timer-digits" id="timerEl">00:00:00</span>
+        <span class="eta-val" id="etaEl">—</span>
+      </div>
+      <button class="timer-info-btn" id="btnInfo" title="Info">i</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="prog-wrap" id="progWrap"><div class="prog-fill" id="progFill"></div></div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar" id="filterBarEl">
+    <button class="filter-chip on" data-st="all"         data-en="ALL"     data-ru="ВСЕ">ВСЕ</button>
+    <button class="filter-chip"    data-st="Available"   data-en="✔ LIVE"  data-ru="✔ РАБОЧИЕ">✔ РАБОЧИЕ</button>
+    <button class="filter-chip"    data-st="Unavailable" data-en="✕ DEAD"  data-ru="✕ МЁРТВЫЕ">✕ МЁРТВЫЕ</button>
+    <input type="text" class="filter-search" id="srchIn" placeholder="🔍 Search / Поиск...">
+  </div>
+
+  <!-- PANE: RESULTS -->
+  <div class="pane on" id="pane-results">
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th class="td-logo">LOGO</th>
+          <th style="min-width:140px" data-en="NAME" data-ru="НАЗВАНИЕ">НАЗВАНИЕ</th>
+          <th style="min-width:100px" data-en="GROUP" data-ru="ГРУППА">ГРУППА</th>
+          <th style="width:110px"     data-en="STATUS" data-ru="СТАТУС">СТАТУС</th>
+          <th class="td-actions"      data-en="ACTIONS" data-ru="ДЕЙСТВИЯ">ДЕЙСТВИЯ</th>
+        </tr></thead>
+        <tbody id="resTbody"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button class="pg-btn" id="pgPrev">◀</button>
+      <span class="pg-info" id="pgInfo">— / —</span>
+      <button class="pg-btn" id="pgNext">▶</button>
+      <select class="pg-size" id="pgSize">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="250">250</option>
+        <option value="500">500</option>
+      </select>
+      <span style="font-size:10px;color:var(--txt3)" id="pgCount"></span>
+    </div>
+  </div>
+
+  <!-- PANE: FAVORITES -->
+  <div class="pane" id="pane-favorites">
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th class="td-logo">LOGO</th>
+          <th data-en="NAME" data-ru="НАЗВАНИЕ">НАЗВАНИЕ</th>
+          <th data-en="GROUP" data-ru="ГРУППА">ГРУППА</th>
+          <th data-en="STATUS" data-ru="СТАТУС">СТАТУС</th>
+          <th class="td-actions" data-en="ACTIONS" data-ru="ДЕЙСТВИЯ">ДЕЙСТВИЯ</th>
+        </tr></thead>
+        <tbody id="favTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PANE: COMPARE -->
+  <div class="pane" id="pane-compare">
+    <div class="compare-area">
+      <div class="fld">
+        <span class="fld-lbl" data-en="Second Playlist File" data-ru="Второй плейлист">Второй плейлист</span>
+        <input type="file" id="cmpFile" accept=".m3u,.m3u8,.txt,.json">
+      </div>
+      <button class="btn btn-cyan" id="btnCompare" style="width:auto">⚖ <span data-en="Compare Playlists" data-ru="Сравнить плейлисты">Сравнить плейлисты</span></button>
+      <div class="tbl-scroll" id="cmpWrap" style="display:none;max-height:55vh">
+        <table>
+          <thead><tr>
+            <th data-en="NAME" data-ru="НАЗВАНИЕ">НАЗВАНИЕ</th>
+            <th data-en="GROUP" data-ru="ГРУППА">ГРУППА</th>
+            <th data-en="STATUS" data-ru="СТАТУС">СТАТУС</th>
+            <th data-en="SOURCE" data-ru="ИСТОЧНИК">ИСТОЧНИК</th>
+          </tr></thead>
+          <tbody id="cmpTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-panel -->
+</div><!-- /app -->
+
+<script>
+/* ════════════════════════════════════════════════
+   INDEX33 v4.0
+   — Оригинальная логика проверки (response.ok + ContentType)
+   — Семафорный пул (реальная скорость)
+   — Мини-плеер (перетаскиваемый)
+   — Быстрый тест 3 рандомных
+   — Кнопка Info у таймера
+   — EN/RU
+════════════════════════════════════════════════ */
+
+const DLOGO = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="3" fill="%230b1018"/><text x="14" y="19" font-size="10" text-anchor="middle" fill="%232a3848" font-family="monospace">TV</text></svg>';
+
+/* ── STATE ── */
+let allResults  = [];
+let filtCache   = [];
+let favorites   = [];
+let stopFlag    = false;
+let hlsMini     = null;
+let hlsFull     = null;
+let curPage     = 1;
+let pgSz        = 100;
+let stFilter    = 'all';
+let srchQ       = '';
+let timerIv     = null;
+let timerT0     = 0;
+let spdIv       = null;
+let lastDone    = 0;
+let lang        = 'ru';
+
+/* ══════════════ LANG ══════════════ */
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('i33_lang', l);
+  document.querySelectorAll('[data-'+l+']').forEach(el => {
+    if (el.tagName !== 'INPUT' && el.tagName !== 'BUTTON') {
+      el.textContent = el.getAttribute('data-'+l);
+    }
+  });
+  // chips
+  document.querySelectorAll('.filter-chip[data-'+l+']').forEach(el => {
+    el.textContent = el.getAttribute('data-'+l);
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
+  // placeholder search
+  document.getElementById('srchIn').placeholder = l==='ru' ? '🔍 Поиск по названию / группе...' : '🔍 Search by name / group...';
+  // speed preset info
+  document.querySelectorAll('.spd-btn .spd-info[data-'+l+']').forEach(el => {
+    el.textContent = el.getAttribute('data-'+l);
+  });
+}
+
+document.querySelectorAll('.lang-btn').forEach(b => {
+  b.addEventListener('click', () => setLang(b.dataset.lang));
+});
+
+/* ══════════════ TABS ══════════════ */
+document.querySelectorAll('.hdr-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.hdr-tab, .pane').forEach(e => e.classList.remove('on'));
+    t.classList.add('on');
+    const p = document.getElementById('pane-'+t.dataset.tab);
+    if (p) p.classList.add('on');
+    document.getElementById('filterBarEl').style.display =
+      t.dataset.tab === 'results' ? 'flex' : 'none';
+  });
+});
+
+/* ══════════════ SPEED PRESETS ══════════════ */
+document.querySelectorAll('.spd-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.spd-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('timeoutSel').value     = b.dataset.t;
+    document.getElementById('concurrencySel').value = b.dataset.c;
+  });
+});
+
+/* ══════════════ TIMER ══════════════ */
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function startTimer() {
+  timerT0 = Date.now();
+  clearInterval(timerIv);
+  timerIv = setInterval(() => {
+    const s  = Math.floor((Date.now()-timerT0)/1000);
+    document.getElementById('timerEl').textContent =
+      `${pad(Math.floor(s/3600))}:${pad(Math.floor((s%3600)/60))}:${pad(s%60)}`;
+    // ETA
+    const done  = allResults.filter(r=>r.status!=='Checking').length;
+    const total = allResults.length;
+    if (done > 5 && total > done) {
+      const rate = done / ((Date.now()-timerT0)/1000);
+      const rem  = Math.ceil((total-done)/rate);
+      document.getElementById('etaEl').textContent =
+        `ETA ${pad(Math.floor(rem/60))}:${pad(rem%60)}`;
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerIv);
+  document.getElementById('etaEl').textContent = lang==='ru'?'✔ готово':'✔ done';
+}
+
+/* ══════════════ SPEED METER ══════════════ */
+function startSpd() {
+  lastDone = 0;
+  spdIv = setInterval(() => {
+    const done = allResults.filter(r=>r.status!=='Checking').length;
+    const delta = done - lastDone; lastDone = done;
+    document.getElementById('spdVal').textContent = delta + ' ch/s';
+    document.getElementById('spdBar').style.width = Math.min(100, delta/2)+'%';
+  }, 1000);
+}
+
+function stopSpd() {
+  clearInterval(spdIv);
+  document.getElementById('spdVal').textContent = '— ch/s';
+  document.getElementById('spdBar').style.width = '0%';
+}
+
+/* ══════════════ PROGRESS ══════════════ */
+function setProg(p) { document.getElementById('progFill').style.width = Math.min(100,p)+'%'; }
+function showProg() { document.getElementById('progWrap').style.display='block'; }
+function hideProg() { document.getElementById('progWrap').style.display='none'; }
+
+/* ══════════════ MODAL ══════════════ */
+function modal(title, msg, type='inf', extraHtml='') {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalTitle').className   = 'modal-title mt-'+type;
+  document.getElementById('modalMsg').textContent   = msg;
+  document.getElementById('modalExtra').innerHTML   = extraHtml;
+  document.getElementById('modal').classList.add('show');
+}
+
+document.getElementById('modalOk').addEventListener('click', () => {
+  document.getElementById('modal').classList.remove('show');
+  document.getElementById('modalExtra').innerHTML = '';
+});
+
+/* ══════════════ INFO BUTTON ══════════════ */
+document.getElementById('btnInfo').addEventListener('click', () => {
+  const ok   = allResults.filter(r=>r.status==='Available').length;
+  const dead = allResults.filter(r=>r.status==='Unavailable').length;
+  const rem  = allResults.length - ok - dead;
+  const elapsed = document.getElementById('timerEl').textContent;
+  const grps = new Set(allResults.map(r=>r.group)).size;
+  const favs = favorites.length;
+  const pct  = allResults.length ? Math.round(ok/allResults.length*100) : 0;
+  const s = allResults.length ? Math.floor((Date.now()-timerT0)/1000) : 0;
+  const rate = s > 0 ? Math.round(ok/s) : 0;
+
+  const extra = `<div class="info-grid">
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Всего':'Total'}</div><div class="info-cell-val" style="color:var(--cyan)">${allResults.length}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Рабочих':'Working'}</div><div class="info-cell-val" style="color:var(--green)">${ok}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Мёртвых':'Dead'}</div><div class="info-cell-val" style="color:var(--red)">${dead}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Осталось':'Remaining'}</div><div class="info-cell-val" style="color:var(--amber)">${rem}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'% живых':'% alive'}</div><div class="info-cell-val" style="color:var(--green)">${pct}%</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Избранных':'Favorites'}</div><div class="info-cell-val" style="color:var(--amber)">${favs}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Групп':'Groups'}</div><div class="info-cell-val" style="color:var(--cyan)">${grps}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Скорость':'Rate'}</div><div class="info-cell-val" style="color:var(--amber)">${rate} ch/s</div></div>
+  </div>`;
+
+  modal('INDEX33 // INFO', `${lang==='ru'?'Время проверки':'Check time'}: ${elapsed}`, 'amb', extra);
+});
+
+/* ══════════════ PARSE ══════════════ */
+function detectType(name, content) {
+  const e = (name||'').split('.').pop().toLowerCase();
+  if (e==='json') return 'JSON';
+  const t = (content||'').trimStart();
+  if (t.startsWith('{')||t.startsWith('[')) return 'JSON';
+  return 'M3U';
+}
+
+function parseM3U(content) {
+  const links = [];
+  const lines = content.split(/\r?\n/);
+  let cur = { name:'—', group:'—', logo:DLOGO };
+  for (let i=0;i<lines.length;i++) {
+    const ln = lines[i].trim();
+    if (!ln) continue;
+    if (ln.startsWith('#EXTINF:')) {
+      const nm  = ln.match(/tvg-name="([^"]*)"/);
+      const grp = ln.match(/group-title="([^"]*)"/);
+      const lg  = ln.match(/tvg-logo="([^"]*)"/);
+      const cm  = ln.match(/,(.+)$/);
+      cur = {
+        name:  (nm?nm[1]:cm?cm[1]:'').trim()||'—',
+        group: grp?grp[1].trim():'—',
+        logo:  lg?lg[1].trim():DLOGO
+      };
+    } else if (!ln.startsWith('#') && (ln.startsWith('http')||ln.startsWith('rtmp')||ln.startsWith('rtsp'))) {
+      links.push({...cur, host:ln, status:'Checking'});
+      cur = {name:'—',group:'—',logo:DLOGO};
+    }
+  }
+  return links;
+}
+
+function parseJSON(content) {
+  let data; try{data=JSON.parse(content)}catch{return[]}
+  if(!Array.isArray(data)) data=[data];
+  return data.map(i=>({
+    name:i.name||i.title||'—', group:i.group||i.type||'—',
+    host:i.url||i.host||'', logo:i.img||i.logo||DLOGO, status:'Checking'
+  })).filter(i=>i.host);
+}
+
+function parseInput(content,type){ return type==='JSON'?parseJSON(content):parseM3U(content); }
+
+/* ══════════════ CHECK LINK ══════════════
+   ОРИГИНАЛЬНАЯ ЛОГИКА — response.ok + ContentType
+   GET + Range:bytes=0-1023
+   НЕ МЕНЯТЬ
+══════════════════════════════════════════ */
+async function checkLink(url) {
+  try {
+    const timeout = parseInt(document.getElementById('timeoutSel').value) || 5000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'video/mp4,video/x-matroska,application/vnd.apple.mpegurl,*/*',
+        'Range': 'bytes=0-1023'
+      },
+      cache: 'no-store'
+    });
+
+    clearTimeout(timeoutId);
+
+    const contentType = response.headers.get('Content-Type') || '';
+    const isPlayable = response.ok && (
+      contentType.includes('video') ||
+      contentType.includes('application/vnd.apple.mpegurl') ||
+      contentType.includes('application/octet-stream')
+    );
+
+    return isPlayable;
+  } catch (error) {
+    return false;
+  }
+}
+
+/* ══════════════ POOL ══════════════
+   Семафорный пул — каждый воркер
+   берёт следующую задачу сам как только свободен
+══════════════════════════════════ */
+async function runPool(items, concurrency, fn) {
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length && !stopFlag) {
+      const i = idx++;
+      await fn(items[i], i);
+    }
+  }
+  const ws = [];
+  for (let w=0; w<Math.min(concurrency,items.length); w++) ws.push(worker());
+  await Promise.all(ws);
+}
+
+/* ══════════════ PROCESS ══════════════ */
+async function processLinks(data) {
+  allResults = data;
+  filtCache  = [];
+  curPage    = 1;
+  updateStats();
+
+  const conc  = parseInt(document.getElementById('concurrencySel').value)||100;
+  const total = allResults.length;
+  let uiT     = Date.now();
+
+  await runPool(allResults, conc, async (item, i) => {
+    allResults[i].status = await checkLink(item.host) ? 'Available' : 'Unavailable';
+    const now = Date.now();
+    if (now - uiT > 250) {
+      uiT = now;
+      const done = allResults.filter(r=>r.status!=='Checking').length;
+      setProg((done/total)*100);
+      updateStats();
+      if (document.getElementById('pane-results').classList.contains('on')) {
+        rebuildFilter(); renderPage();
+      }
+    }
+  });
+
+  rebuildFilter(); updateStats(); renderPage(); updateGroups(); saveStore();
+  return allResults.filter(r=>r.status==='Available').length;
+}
+
+/* ══════════════ STATS ══════════════ */
+function updateStats() {
+  const ok   = allResults.filter(r=>r.status==='Available').length;
+  const dead = allResults.filter(r=>r.status==='Unavailable').length;
+  const rem  = allResults.length - ok - dead;
+  document.getElementById('sTot').textContent  = allResults.length;
+  document.getElementById('sOk').textContent   = ok;
+  document.getElementById('sDead').textContent = dead;
+  document.getElementById('sRem').textContent  = rem;
+  document.getElementById('remItem').style.display = rem>0?'':'none';
+  document.getElementById('btnExport').disabled = ok===0;
+}
+
+/* ══════════════ FILTER + RENDER ══════════════ */
+function rebuildFilter() {
+  const q = srchQ.toLowerCase().trim();
+  filtCache = allResults.filter(r => {
+    if (stFilter!=='all' && r.status!==stFilter) return false;
+    if (q && !r.name.toLowerCase().includes(q) && !r.group.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function E(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function renderPage() {
+  const total = filtCache.length;
+  const pages = Math.max(1, Math.ceil(total/pgSz));
+  if (curPage>pages) curPage=pages;
+  const sl = filtCache.slice((curPage-1)*pgSz, curPage*pgSz);
+
+  let html='';
+  for (const r of sl) {
+    const fav = favorites.some(f=>f.host===r.host);
+    const stBadge = r.status==='Available'
+      ? `<span class="badge b-ok">● ${lang==='ru'?'РАБОЧИЙ':'LIVE'}</span>`
+      : r.status==='Unavailable'
+      ? `<span class="badge b-err">✕ ${lang==='ru'?'МЁРТВЫЙ':'DEAD'}</span>`
+      : `<span class="badge b-chk">⟳ ${lang==='ru'?'ПРОВЕРКА':'CHECK'}</span>`;
+
+    const acts = r.status==='Available'
+      ? `<div class="act-btns">
+          <button class="act-btn ab-play" title="${lang==='ru'?'Смотреть':'Watch'}"  onclick="openMini('${E(r.host)}','${E(r.name)}')">▶</button>
+          <button class="act-btn ab-ext"  title="${lang==='ru'?'Внешний плеер':'External player'}" onclick="openExtUrl('${E(r.host)}')">↗</button>
+          <button class="act-btn ab-fav ${fav?'on':''}" title="${lang==='ru'?'Избранное':'Favorite'}" onclick="toggleFav('${E(r.host)}')">★</button>
+        </div>`
+      : '';
+
+    html += `<tr>
+      <td class="td-logo"><img class="ch-logo" src="${E(r.logo)}" onerror="this.src='${DLOGO}'" loading="lazy"></td>
+      <td title="${E(r.name)}">${E(r.name)}</td>
+      <td title="${E(r.group)}" style="color:var(--txt2)">${E(r.group)}</td>
+      <td>${stBadge}</td>
+      <td class="td-actions">${acts}</td>
+    </tr>`;
+  }
+
+  document.getElementById('resTbody').innerHTML = html;
+  document.getElementById('pgInfo').textContent = `${curPage} / ${pages}`;
+  document.getElementById('pgCount').textContent= `${total} / ${allResults.length}`;
+  document.getElementById('pgPrev').disabled = curPage<=1;
+  document.getElementById('pgNext').disabled = curPage>=pages;
+}
+
+/* ══════════════ PAGER ══════════════ */
+document.getElementById('pgPrev').addEventListener('click',()=>{curPage--;renderPage();});
+document.getElementById('pgNext').addEventListener('click',()=>{curPage++;renderPage();});
+document.getElementById('pgSize').addEventListener('change',e=>{pgSz=parseInt(e.target.value);curPage=1;renderPage();});
+
+/* ══════════════ FILTERS ══════════════ */
+document.querySelectorAll('.filter-chip').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on');
+    stFilter=c.dataset.st; curPage=1; rebuildFilter(); renderPage();
+  });
+});
+
+document.getElementById('srchIn').addEventListener('input',e=>{
+  srchQ=e.target.value; curPage=1; rebuildFilter(); renderPage();
+});
+
+/* ══════════════ FAVORITES ══════════════ */
+function toggleFav(host) {
+  const r = allResults.find(r=>r.host===host); if(!r) return;
+  const idx = favorites.findIndex(f=>f.host===host);
+  if(idx===-1) favorites.push(r); else favorites.splice(idx,1);
+  localStorage.setItem('i33_fav',JSON.stringify(favorites));
+  rebuildFilter(); renderPage(); renderFav();
+}
+window.toggleFav = toggleFav;
+
+function renderFav() {
+  let html='';
+  for(const r of favorites){
+    html+=`<tr>
+      <td class="td-logo"><img class="ch-logo" src="${E(r.logo)}" onerror="this.src='${DLOGO}'" loading="lazy"></td>
+      <td title="${E(r.name)}">${E(r.name)}</td>
+      <td style="color:var(--txt2)">${E(r.group)}</td>
+      <td><span class="badge b-ok">● ${lang==='ru'?'РАБОЧИЙ':'LIVE'}</span></td>
+      <td class="td-actions"><div class="act-btns">
+        <button class="act-btn ab-play" onclick="openMini('${E(r.host)}','${E(r.name)}')">▶</button>
+        <button class="act-btn ab-ext"  onclick="openExtUrl('${E(r.host)}')">↗</button>
+        <button class="act-btn ab-fav on" onclick="toggleFav('${E(r.host)}')">★</button>
+      </div></td>
+    </tr>`;
+  }
+  document.getElementById('favTbody').innerHTML = html;
+}
+
+/* ══════════════ GROUPS ══════════════ */
+function updateGroups() {
+  const grps = [...new Set(allResults.map(r=>r.group||'—'))].sort();
+  document.getElementById('groupsList').innerHTML =
+    grps.map(g=>`<li onclick="filterByGroup('${E(g)}')">${E(g)}</li>`).join('');
+}
+
+function filterByGroup(g) {
+  document.getElementById('srchIn').value = g; srchQ = g;
+  stFilter='all';
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('on'));
+  document.querySelector('[data-st="all"]').classList.add('on');
+  curPage=1; rebuildFilter(); renderPage();
+  document.querySelector('[data-tab="results"]').click();
+}
+
+/* ══════════════ HISTORY ══════════════ */
+function saveHist(name, total, ok) {
+  const h=JSON.parse(localStorage.getItem('i33_hist')||'[]');
+  h.unshift({name,total,ok,date:Date.now()});
+  localStorage.setItem('i33_hist',JSON.stringify(h.slice(0,15)));
+  renderHist();
+}
+
+function renderHist() {
+  const h=JSON.parse(localStorage.getItem('i33_hist')||'[]');
+  document.getElementById('histList').innerHTML=h.map(i=>{
+    const nm=i.name.length>26?i.name.slice(0,26)+'…':i.name;
+    const d=new Date(i.date).toLocaleString(lang==='ru'?'ru-RU':'en-US',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<li>${E(nm)} — ${i.ok}/${i.total} [${d}]</li>`;
+  }).join('');
+}
+
+/* ══════════════ STORAGE ══════════════ */
+function saveStore() {
+  try {
+    localStorage.setItem('i33_res',JSON.stringify(
+      allResults.map(r=>({n:r.name,g:r.group,h:r.host,l:r.logo,s:r.status}))
+    ));
+  } catch {}
+}
+
+function loadStore() {
+  try {
+    const raw=localStorage.getItem('i33_res');
+    if(raw){
+      allResults=JSON.parse(raw).map(r=>({name:r.n,group:r.g,host:r.h,logo:r.l,status:r.s}));
+      rebuildFilter(); updateStats(); updateGroups(); renderPage();
+    }
+    const f=localStorage.getItem('i33_fav');
+    if(f){favorites=JSON.parse(f);renderFav();}
+  } catch {}
+  renderHist();
+}
+
+/* ══════════════ READ FILE ══════════════ */
+function readFile(file) {
+  return new Promise((res,rej)=>{
+    const fr=new FileReader();
+    fr.onload=e=>res(e.target.result);
+    fr.onerror=()=>rej(new Error(lang==='ru'?'Ошибка чтения файла':'File read error'));
+    fr.readAsText(file,'UTF-8');
+  });
+}
+
+/* ══════════════ START CHECK ══════════════ */
+document.getElementById('btnCheck').addEventListener('click', async () => {
+  const fi  = document.getElementById('fileInput');
+  const url = document.getElementById('m3uUrl').value.trim();
+
+  stopFlag=false;
+  document.getElementById('btnCheck').disabled   = true;
+  document.getElementById('btnStop').disabled    = false;
+  document.getElementById('btnRefresh').disabled = true;
+  showProg(); setProg(0); startTimer(); startSpd();
+
+  try {
+    let content='', name='', type='';
+
+    if (fi.files.length) {
+      name    = fi.files[0].name;
+      setProg(2);
+      content = await readFile(fi.files[0]);
+      type    = detectType(name, content);
+    } else if (url) {
+      name = url.split('/').pop().split('?')[0] || 'playlist';
+      setProg(2);
+      const ac=new AbortController();
+      const ti=setTimeout(()=>ac.abort(),90000);
+      const resp=await fetch(url,{signal:ac.signal,headers:{'User-Agent':'Mozilla/5.0'}});
+      clearTimeout(ti);
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      content=await resp.text();
+      type=detectType(url,content);
+    } else {
+      throw new Error(lang==='ru'?'Выберите файл или введите URL':'Select file or enter URL');
+    }
+
+    if(!content.trim()) throw new Error(lang==='ru'?'Файл пустой':'File is empty');
+    setProg(5);
+    await new Promise(r=>setTimeout(r,0));
+
+    const links = parseInput(content, type);
+    if(!links.length) throw new Error(lang==='ru'?'Ссылки не найдены':'No links found');
+
+    // Дедупликация
+    const seen=new Set();
+    const uniq=links.filter(l=>{ if(seen.has(l.host))return false; seen.add(l.host); return true; });
+    const dupes=links.length-uniq.length;
+
+    setProg(8);
+    const ok = await processLinks(uniq);
+    const el = ((Date.now()-timerT0)/1000).toFixed(0);
+
+    saveHist(name, uniq.length, ok);
+    stopTimer(); stopSpd();
+
+    modal(
+      lang==='ru'?'✔ ГОТОВО':'✔ DONE',
+      `${lang==='ru'?'Рабочих':'Working'}: ${ok} / ${uniq.length}\n${lang==='ru'?'Дублей удалено':'Dupes removed'}: ${dupes}\n${lang==='ru'?'Время':'Time'}: ${pad(Math.floor(el/60))}:${pad(el%60)}`,
+      'ok'
+    );
+  } catch(e) {
+    stopTimer(); stopSpd();
+    modal(lang==='ru'?'✕ ОШИБКА':'✕ ERROR', e.message, 'err');
+    console.error(e);
+  } finally {
+    document.getElementById('btnCheck').disabled   = false;
+    document.getElementById('btnStop').disabled    = true;
+    document.getElementById('btnRefresh').disabled = false;
+    hideProg();
+  }
+});
+
+/* ══════════════ STOP ══════════════ */
+document.getElementById('btnStop').addEventListener('click',()=>{
+  stopFlag=true; stopTimer(); stopSpd(); hideProg();
+  document.getElementById('btnStop').disabled=true;
+  rebuildFilter(); renderPage();
+  const done=allResults.filter(r=>r.status!=='Checking').length;
+  modal(
+    lang==='ru'?'■ СТОП':'■ STOPPED',
+    `${lang==='ru'?'Проверено':'Checked'}: ${done} / ${allResults.length}\n${lang==='ru'?'Рабочих':'Working'}: ${allResults.filter(r=>r.status==='Available').length}`,
+    'inf'
+  );
+});
+
+/* ══════════════ REFRESH ══════════════ */
+document.getElementById('btnRefresh').addEventListener('click', async ()=>{
+  if(!allResults.length){modal(lang==='ru'?'ОШИБКА':'ERROR',lang==='ru'?'Нет данных':'No data','err');return;}
+  stopFlag=false;
+  allResults.forEach(r=>r.status='Checking');
+  document.getElementById('btnRefresh').disabled=true;
+  document.getElementById('btnStop').disabled=false;
+  showProg(); startTimer(); startSpd();
+
+  const conc=parseInt(document.getElementById('concurrencySel').value)||100;
+  let uiT=Date.now();
+  await runPool(allResults,conc,async(item,i)=>{
+    allResults[i].status=await checkLink(item.host)?'Available':'Unavailable';
+    const now=Date.now();
+    if(now-uiT>250){uiT=now;setProg(allResults.filter(r=>r.status!=='Checking').length/allResults.length*100);updateStats();}
+  });
+
+  rebuildFilter(); updateStats(); renderPage(); saveStore();
+  stopTimer(); stopSpd(); hideProg();
+  document.getElementById('btnRefresh').disabled=false;
+  document.getElementById('btnStop').disabled=true;
+  modal(
+    lang==='ru'?'✔ ОБНОВЛЕНО':'✔ REFRESHED',
+    `${lang==='ru'?'Рабочих':'Working'}: ${allResults.filter(r=>r.status==='Available').length} / ${allResults.length}`,
+    'ok'
+  );
+});
+
+/* ══════════════ CLEAR ══════════════ */
+document.getElementById('btnClear').addEventListener('click',()=>{
+  allResults=[];filtCache=[];favorites=[];
+  ['i33_res','i33_fav','i33_hist'].forEach(k=>localStorage.removeItem(k));
+  updateStats();rebuildFilter();renderPage();renderFav();updateGroups();renderHist();
+  document.getElementById('btnExport').disabled=true;
+  document.getElementById('timerEl').textContent='00:00:00';
+  document.getElementById('etaEl').textContent='—';
+  document.getElementById('blobPanel').style.display='none';
+  hideProg();
+  if(window._blobUrl){URL.revokeObjectURL(window._blobUrl);window._blobUrl=null;}
+});
+
+/* ══════════════ QUICK TEST ══════════════ */
+document.getElementById('btnTest').addEventListener('click', async ()=>{
+  const pool = allResults.filter(r=>r.status==='Available');
+  if(pool.length < 1){
+    modal(
+      lang==='ru'?'ТЕСТ':'TEST',
+      lang==='ru'?'Сначала запустите проверку — нет рабочих каналов для теста.':'Run check first — no working channels to test.',
+      'inf'
+    );
+    return;
+  }
+
+  // Берём 3 рандомных рабочих канала
+  const shuffled = [...pool].sort(()=>Math.random()-.5).slice(0,3);
+
+  const rows = shuffled.map(r=>`
+    <div class="test-ch-row">
+      <span class="test-ch-name">${E(r.name)}</span>
+      <span class="test-ch-st" id="tst_${E(r.host.slice(-16))}" style="color:var(--amber)">⟳</span>
+      <button class="act-btn ab-play" onclick="openMini('${E(r.host)}','${E(r.name)}');document.getElementById('modal').classList.remove('show')" style="flex-shrink:0">▶</button>
+    </div>`).join('');
+
+  modal(
+    lang==='ru'?'🧪 БЫСТРЫЙ ТЕСТ':'🧪 QUICK TEST',
+    lang==='ru'?'3 случайных рабочих канала.\nНажми ▶ чтобы открыть в мини-плеере:':'3 random working channels.\nPress ▶ to open in mini player:',
+    'amb',
+    `<div class="test-channels">${rows}</div>`
+  );
+});
+
+/* ══════════════ EXPORT ══════════════ */
+document.getElementById('btnExport').addEventListener('click',()=>{
+  const fmt  = document.getElementById('exportFmt').value;
+  const avail= allResults.filter(r=>r.status==='Available');
+  if(!avail.length){modal(lang==='ru'?'ОШИБКА':'ERROR',lang==='ru'?'Нет рабочих':'No working channels','err');return;}
+
+  let content, filename, mime;
+  if(fmt==='m3u'||fmt==='txt'){
+    const parts=['#EXTM3U\n'];
+    for(const r of avail)
+      parts.push(`#EXTINF:-1 tvg-logo="${r.logo||''}" group-title="${r.group||''}",${r.name||''}\n${r.host}\n`);
+    content=parts.join('');
+    filename=fmt==='m3u'?'index33_playlist.m3u':'index33_links.txt';
+    mime='application/x-mpegurl';
+  } else {
+    content=JSON.stringify(avail.map(r=>({name:r.name,type:r.group,url:r.host,img:r.logo})),null,2);
+    filename='index33_links.json'; mime='application/json';
+  }
+
+  const blob=new Blob([content],{type:mime});
+  const blobUrl=URL.createObjectURL(blob);
+
+  // Скачивание
+  const a=Object.assign(document.createElement('a'),{href:blobUrl,download:filename,style:'display:none'});
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+  // Blob ссылка для VLC/Kodi
+  if(window._blobUrl) URL.revokeObjectURL(window._blobUrl);
+  window._blobUrl = blobUrl;
+  document.getElementById('blobPanel').style.display='block';
+  document.getElementById('blobLink').href=blobUrl;
+  document.getElementById('blobLink').textContent=blobUrl;
+
+  modal(
+    lang==='ru'?'⬇ ЭКСПОРТ':'⬇ EXPORT',
+    `${filename}\n${avail.length} ${lang==='ru'?'рабочих каналов':'working channels'}\n\n${lang==='ru'?'Blob-ссылка создана — вставь в VLC → Медиа → Открыть URL':'Blob link ready — paste in VLC → Media → Open URL'}`,
+    'ok'
+  );
+});
+
+document.getElementById('btnCopyBlob').addEventListener('click',()=>{
+  const url=document.getElementById('blobLink').href;
+  if(!url||url==='#') return;
+  navigator.clipboard.writeText(url).then(()=>{
+    modal(lang==='ru'?'📋 СКОПИРОВАНО':'📋 COPIED',lang==='ru'?'Ссылка в буфере.\nВставь в VLC: Медиа → Открыть URL':'Link copied.\nPaste in VLC: Media → Open URL','ok');
+  }).catch(()=>{
+    const ta=Object.assign(document.createElement('textarea'),{value:url,style:'position:fixed;opacity:0'});
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    modal(lang==='ru'?'📋 СКОПИРОВАНО':'📋 COPIED',lang==='ru'?'Скопировано!':'Copied!','ok');
+  });
+});
+
+document.getElementById('btnRevokeBlob').addEventListener('click',()=>{
+  if(window._blobUrl){URL.revokeObjectURL(window._blobUrl);window._blobUrl=null;}
+  document.getElementById('blobPanel').style.display='none';
+  document.getElementById('blobLink').href='#';
+  document.getElementById('blobLink').textContent='—';
+});
+
+/* ══════════════ PDF ══════════════ */
+document.getElementById('btnPdf').addEventListener('click',()=>{
+  if(typeof window.jspdf==='undefined'){modal('ERROR','jsPDF not loaded','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const ok=allResults.filter(r=>r.status==='Available').length;
+  const tot=allResults.length;
+  doc.setFont('helvetica','bold'); doc.setFontSize(22);
+  doc.text('INDEX33 // IPTV REPORT',10,20);
+  doc.setFont('helvetica','normal'); doc.setFontSize(12);
+  doc.text(`Date: ${new Date().toLocaleString()}`,10,35);
+  doc.text(`Time elapsed: ${document.getElementById('timerEl').textContent}`,10,45);
+  doc.text(`Total: ${tot}`,10,55);
+  doc.text(`Working: ${ok}`,10,65);
+  doc.text(`Dead: ${tot-ok}`,10,75);
+  doc.text(`Favorites: ${favorites.length}`,10,85);
+  doc.text(`Groups: ${[...new Set(allResults.map(r=>r.group))].length}`,10,95);
+  doc.save('index33_report.pdf');
+});
+
+/* ══════════════ COMPARE ══════════════ */
+document.getElementById('btnCompare').addEventListener('click', async ()=>{
+  const fi=document.getElementById('cmpFile');
+  if(!fi.files.length||!allResults.length){
+    modal(lang==='ru'?'ОШИБКА':'ERROR',lang==='ru'?'Загрузите основной плейлист и второй файл':'Load main playlist and second file first','err');
+    return;
+  }
+  const content=await readFile(fi.files[0]);
+  const type=detectType(fi.files[0].name,content);
+  const second=parseInput(content,type);
+  const firstSet=new Set(allResults.map(r=>r.host));
+  let html='';
+  for(const r of second){
+    const dup=firstSet.has(r.host);
+    html+=`<tr>
+      <td title="${E(r.name)}">${E(r.name)}</td>
+      <td style="color:var(--txt2)">${E(r.group)}</td>
+      <td><span class="badge ${dup?'b-chk':'b-ok'}">${dup?(lang==='ru'?'ДУБЛИКАТ':'DUPLICATE'):(lang==='ru'?'УНИКАЛЬНЫЙ':'UNIQUE')}</span></td>
+      <td style="color:var(--txt2)">${lang==='ru'?'2-й плейлист':'2nd playlist'}</td>
+    </tr>`;
+  }
+  document.getElementById('cmpTbody').innerHTML=html;
+  document.getElementById('cmpWrap').style.display='block';
+  modal(
+    lang==='ru'?'⚖ СРАВНЕНИЕ':'⚖ COMPARE',
+    `${lang==='ru'?'Первый':'First'}: ${allResults.length}\n${lang==='ru'?'Второй':'Second'}: ${second.length}\n${lang==='ru'?'Дублей':'Dupes'}: ${second.filter(r=>firstSet.has(r.host)).length}\n${lang==='ru'?'Уникальных':'Unique'}: ${second.filter(r=>!firstSet.has(r.host)).length}`,
+    'inf'
+  );
+});
+
+/* ══════════════════════════════════════
+   МИНИ-ПЛЕЕР
+   Перетаскиваемый, HLS поддержка
+══════════════════════════════════════ */
+let miniHlsInst = null;
+
+function openMini(url, name) {
+  const box   = document.getElementById('miniPlayer');
+  const video = document.getElementById('miniVideo');
+  const st    = document.getElementById('miniStatus');
+  const title = document.getElementById('miniTitle');
+
+  // Стоп предыдущий
+  video.pause();
+  if(miniHlsInst){miniHlsInst.destroy();miniHlsInst=null;}
+  video.src=''; video.load();
+
+  title.textContent = name||url;
+  st.className='mini-status load';
+  st.textContent = lang==='ru'?'Загрузка...':'Loading...';
+  box.classList.add('show');
+
+  const isHLS = url.includes('.m3u8');
+
+  if(isHLS && typeof Hls!=='undefined' && Hls.isSupported()){
+    miniHlsInst=new Hls({enableWorker:true,lowLatencyMode:true});
+    miniHlsInst.loadSource(url);
+    miniHlsInst.attachMedia(video);
+    miniHlsInst.on(Hls.Events.MANIFEST_PARSED,()=>{
+      st.className='mini-status ok';
+      st.textContent=lang==='ru'?'✔ Воспроизводится':'✔ Playing';
+      video.play().catch(()=>{});
+    });
+    miniHlsInst.on(Hls.Events.ERROR,(_,d)=>{
+      if(d.fatal){
+        st.className='mini-status err';
+        st.textContent=lang==='ru'?'✕ Ошибка потока':'✕ Stream error';
+        miniHlsInst.destroy(); miniHlsInst=null;
+      }
+    });
+  } else {
+    video.src=url;
+    video.oncanplay=()=>{
+      st.className='mini-status ok';
+      st.textContent=lang==='ru'?'✔ Воспроизводится':'✔ Playing';
+    };
+    video.onerror=()=>{
+      st.className='mini-status err';
+      st.textContent=lang==='ru'?'✕ Не воспроизводится':'✕ Cannot play';
+    };
+    video.play().catch(()=>{});
+  }
+}
+
+window.openMini = openMini;
+
+document.getElementById('miniClose').addEventListener('click',()=>{
+  const video=document.getElementById('miniVideo');
+  video.pause();
+  if(miniHlsInst){miniHlsInst.destroy();miniHlsInst=null;}
+  video.src='';
+  document.getElementById('miniPlayer').classList.remove('show');
+});
+
+document.getElementById('miniExpand').addEventListener('click',()=>{
+  const video=document.getElementById('miniVideo');
+  const src=video.src||'';
+  const name=document.getElementById('miniTitle').textContent;
+  // Закрываем мини, открываем полный
+  video.pause();
+  if(miniHlsInst){miniHlsInst.destroy();miniHlsInst=null;}
+  video.src='';
+  document.getElementById('miniPlayer').classList.remove('show');
+  openFull(src,name);
+});
+
+/* ══════════════ FULL PLAYER ══════════════ */
+let fullHlsInst = null;
+
+function openFull(url, name) {
+  const box   = document.getElementById('fullPlayer');
+  const video = document.getElementById('fullVideo');
+  document.getElementById('fpTitle').textContent = name||url;
+  video.pause();
+  if(fullHlsInst){fullHlsInst.destroy();fullHlsInst=null;}
+  video.src=''; video.load();
+
+  if(url.includes('.m3u8') && typeof Hls!=='undefined' && Hls.isSupported()){
+    fullHlsInst=new Hls({enableWorker:true,lowLatencyMode:true});
+    fullHlsInst.loadSource(url); fullHlsInst.attachMedia(video);
+    fullHlsInst.on(Hls.Events.MANIFEST_PARSED,()=>{box.classList.add('show');video.play().catch(()=>{});});
+    fullHlsInst.on(Hls.Events.ERROR,(_,d)=>{
+      if(d.fatal){fullHlsInst.destroy();fullHlsInst=null;box.classList.remove('show');}
+    });
+  } else {
+    video.src=url; box.classList.add('show');
+    video.play().catch(()=>{});
+  }
+}
+
+document.getElementById('fpClose').addEventListener('click',()=>{
+  const video=document.getElementById('fullVideo');
+  video.pause();
+  if(fullHlsInst){fullHlsInst.destroy();fullHlsInst=null;}
+  video.src='';
+  document.getElementById('fullPlayer').classList.remove('show');
+});
+
+/* ══════════════ EXTERNAL ══════════════ */
+function openExtUrl(url){ window.open(url,'_blank'); }
+window.openExtUrl=openExtUrl;
+
+/* ══════════════ DRAG MINI PLAYER ══════════════ */
+(function(){
+  const box = document.getElementById('miniPlayer');
+  const hdr = document.getElementById('miniDragHdr');
+  let ox=0,oy=0,bx=0,by=0,dragging=false;
+
+  hdr.addEventListener('mousedown',e=>{
+    if(e.target.closest('.mini-btn')) return;
+    dragging=true;
+    ox=e.clientX; oy=e.clientY;
+    const rect=box.getBoundingClientRect();
+    bx=rect.left; by=rect.top;
+    box.style.transition='none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const dx=e.clientX-ox; const dy=e.clientY-oy;
+    box.style.right='auto'; box.style.bottom='auto';
+    box.style.left=Math.max(0,bx+dx)+'px';
+    box.style.top =Math.max(0,by+dy)+'px';
+  });
+
+  document.addEventListener('mouseup',()=>{ dragging=false; });
+
+  // Touch
+  hdr.addEventListener('touchstart',e=>{
+    if(e.target.closest('.mini-btn')) return;
+    const t=e.touches[0];
+    dragging=true; ox=t.clientX; oy=t.clientY;
+    const rect=box.getBoundingClientRect(); bx=rect.left; by=rect.top;
+    box.style.transition='none';
+  },{passive:true});
+
+  document.addEventListener('touchmove',e=>{
+    if(!dragging) return;
+    const t=e.touches[0];
+    const dx=t.clientX-ox; const dy=t.clientY-oy;
+    box.style.right='auto'; box.style.bottom='auto';
+    box.style.left=Math.max(0,bx+dx)+'px';
+    box.style.top =Math.max(0,by+dy)+'px';
+  },{passive:true});
+
+  document.addEventListener('touchend',()=>{ dragging=false; });
+})();
+
+/* ══════════════ INIT ══════════════ */
+(function(){
+  lang = localStorage.getItem('i33_lang') || 'ru';
+  setLang(lang);
+  loadStore();
+})();
+</script>
 </body>
 </html>
+     
