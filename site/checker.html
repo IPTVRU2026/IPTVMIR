@@ -1,17 +1,21 @@
+---
+
+## 📄 Полный код (сохраните как `index.html`):
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>INDEX33 — IPTV Checker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>INDEX33 — IPTV Checker Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.14/dist/hls.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ══════════════════════════════════════════
-   INDEX33 — IPTV CHECKER
-   Aesthetic: Military-grade terminal meets
-   cinematic HUD. Amber + cyan on deep black.
+   INDEX33 PRO — IPTV CHECKER
+   Optimized for GitHub Pages + Mobile
 ══════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -45,9 +49,17 @@
   --gc: 0 0 12px rgba(0,229,255,.4), 0 0 30px rgba(0,229,255,.15);
   --gg: 0 0 12px rgba(57,255,20,.4), 0 0 30px rgba(57,255,20,.15);
   --gr: 0 0 12px rgba(255,34,68,.4), 0 0 30px rgba(255,34,68,.15);
+  
+  /* Mobile vars */
+  --header-h: 56px;
+  --sidebar-w: 280px;
 }
 
-html { font-size: 13px; scroll-behavior: smooth; }
+html { 
+  font-size: 13px; 
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   font-family: var(--mono);
@@ -57,6 +69,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  touch-action: manipulation;
 }
 
 /* grid background */
@@ -88,41 +101,46 @@ header {
   background: rgba(4,6,10,.96);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(0,229,255,.15);
-  height: 56px;
+  height: var(--header-h);
   display: flex; align-items: center;
-  padding: 0 16px; gap: 12px;
+  padding: 0 12px; gap: 10px;
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .logo-mark {
   font-family: var(--head);
   font-weight: 900;
-  font-size: 22px;
-  letter-spacing: 3px;
+  font-size: 20px;
+  letter-spacing: 2px;
   color: var(--amber);
   text-shadow: var(--ga);
   flex-shrink: 0;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .logo-mark sup {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--cyan);
   letter-spacing: 1px;
   vertical-align: super;
   text-shadow: var(--gc);
 }
 
-.hdr-sep { width: 1px; height: 28px; background: var(--bg4); flex-shrink: 0; }
+.hdr-sep { width: 1px; height: 24px; background: var(--bg4); flex-shrink: 0; }
 
 .hdr-nav {
-  display: flex; gap: 2px;
+  display: flex; gap: 1px;
   overflow-x: auto; flex: 1;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.hdr-nav::-webkit-scrollbar { display: none; }
 
 .hdr-tab {
-  padding: 6px 14px;
+  padding: 5px 12px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 1px;
   color: var(--txt2);
   background: none; border: none;
@@ -131,28 +149,29 @@ header {
   white-space: nowrap;
   transition: all .2s;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .hdr-tab:hover { color: var(--txt); background: var(--bg3); }
 .hdr-tab.on { color: var(--amber); background: rgba(255,183,0,.08); }
 
 .hdr-right {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   flex-shrink: 0; margin-left: auto;
 }
 
 .lang-sw {
-  display: flex; gap: 2px;
+  display: flex; gap: 1px;
   background: var(--bg2);
   border: 1px solid var(--bg4);
   border-radius: var(--r);
-  padding: 2px;
+  padding: 1px;
 }
 
 .lang-btn {
-  padding: 4px 9px;
+  padding: 3px 8px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 1px;
   border: none; background: none;
   color: var(--txt2);
@@ -161,45 +180,41 @@ header {
   transition: all .15s;
 }
 
-.lang-btn.on { background: var(--amber); color: #000; }
+.lang-btn.on { background: var(--amber); color: #000; font-weight: 700; }
 
 /* ══ LAYOUT ══ */
 .app {
   position: relative; z-index: 1;
   flex: 1;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: var(--sidebar-w) 1fr;
   min-height: 0;
-}
-
-@media(max-width:768px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar { position: static !important; height: auto !important; }
 }
 
 /* ══ SIDEBAR ══ */
 .sidebar {
   background: var(--bg1);
   border-right: 1px solid rgba(0,229,255,.08);
-  height: calc(100vh - 56px);
-  position: sticky; top: 56px;
+  height: calc(100vh - var(--header-h));
+  position: sticky; top: var(--header-h);
   overflow-y: auto; overflow-x: hidden;
   display: flex; flex-direction: column;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sb-section {
   border-bottom: 1px solid var(--bg3);
-  padding: 14px 14px;
+  padding: 12px 12px;
 }
 
 .sb-label {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 2.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--txt3);
-  margin-bottom: 10px;
-  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 5px;
 }
 
 .sb-label::after {
@@ -208,21 +223,28 @@ header {
 }
 
 /* ══ FORM ══ */
-.fld { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.fld { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
 .fld:last-child { margin-bottom: 0; }
 
 .fld-lbl {
-  font-size: 9px; letter-spacing: 1.5px;
+  font-size: 8px; letter-spacing: 1.2px;
   color: var(--txt3); text-transform: uppercase;
+  display: flex; align-items: center; gap: 4px;
 }
 
-input[type=text], input[type=file], select {
+.fld-lbl .hint {
+  color: var(--cyan2);
+  cursor: help;
+  font-size: 10px;
+}
+
+input[type=text], input[type=file], input[type=number], select {
   width: 100%;
   background: var(--bg2);
   border: 1px solid var(--bg4);
   border-radius: var(--r);
   color: var(--txt);
-  padding: 8px 10px;
+  padding: 7px 9px;
   font-family: var(--mono);
   font-size: 11px;
   outline: none;
@@ -231,30 +253,47 @@ input[type=text], input[type=file], select {
 }
 
 input[type=text]::placeholder { color: var(--txt3); }
-input[type=text]:focus, select:focus {
+input[type=text]:focus, input[type=number]:focus, select:focus {
   border-color: var(--cyan2);
   box-shadow: 0 0 0 2px rgba(0,229,255,.08);
 }
 
-input[type=file] { padding: 6px 10px; cursor: pointer; }
-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23637080'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+input[type=file] { 
+  padding: 5px 9px; 
+  cursor: pointer; 
+  font-size: 10px;
+}
+
+input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+select { 
+  cursor: pointer; 
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23637080'/%3E%3C/svg%3E"); 
+  background-repeat: no-repeat; 
+  background-position: right 8px center; 
+  padding-right: 24px; 
+  font-size: 10px;
+}
 
 /* ══ BUTTONS ══ */
 .btn {
   width: 100%;
-  padding: 9px 12px;
+  padding: 8px 10px;
   border: none; border-radius: var(--r);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   transition: all .2s;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   position: relative;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 .btn::after {
@@ -284,44 +323,44 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 .speed-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
 .spd-btn {
-  padding: 8px 6px;
+  padding: 6px 5px;
   border: 1px solid var(--bg4);
   border-radius: var(--r);
   background: var(--bg2);
   color: var(--txt2);
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .5px;
+  font-size: 9px;
+  letter-spacing: .3px;
   cursor: pointer;
   transition: all .2s;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
-.spd-btn .spd-name { font-weight: 700; font-size: 11px; display: block; }
-.spd-btn .spd-info { font-size: 9px; color: var(--txt3); display: block; margin-top: 2px; }
+.spd-btn .spd-name { font-weight: 700; font-size: 10px; display: block; }
+.spd-btn .spd-info { font-size: 8px; color: var(--txt3); display: block; margin-top: 1px; }
 
 .spd-btn:hover { border-color: var(--amber2); color: var(--amber); }
 .spd-btn.on { border-color: var(--amber); color: var(--amber); background: rgba(255,183,0,.08); box-shadow: var(--ga); }
 
 /* ══ SPEED METER ══ */
-.spd-meter { margin-top: 8px; }
-.spd-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.spd-label { font-size: 9px; letter-spacing: 1.5px; color: var(--txt3); text-transform: uppercase; }
-.spd-val { font-size: 14px; font-weight: 700; color: var(--amber); }
-.spd-bar-bg { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-.spd-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber2), var(--amber)); border-radius: 2px; transition: width .4s ease; box-shadow: var(--ga); }
+.spd-meter { margin-top: 6px; }
+.spd-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.spd-label { font-size: 8px; letter-spacing: 1.2px; color: var(--txt3); text-transform: uppercase; }
+.spd-val { font-size: 12px; font-weight: 700; color: var(--amber); }
+.spd-bar-bg { height: 2px; background: var(--bg3); border-radius: 1px; overflow: hidden; }
+.spd-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--amber2), var(--amber)); border-radius: 1px; transition: width .4s ease; box-shadow: var(--ga); }
 
 /* ══ MINI LIST ══ */
-.mini-list { list-style: none; max-height: 120px; overflow-y: auto; }
+.mini-list { list-style: none; max-height: 100px; overflow-y: auto; }
 .mini-list li {
-  padding: 5px 8px; border-radius: var(--r);
-  font-size: 11px; color: var(--txt2);
+  padding: 4px 7px; border-radius: var(--r);
+  font-size: 10px; color: var(--txt2);
   cursor: pointer; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
   transition: background .1s, color .1s;
@@ -334,17 +373,17 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
   background: rgba(57,255,20,.05);
   border: 1px solid rgba(57,255,20,.2);
   border-radius: var(--r);
-  padding: 10px;
-  margin-top: 10px;
+  padding: 8px;
+  margin-top: 8px;
 }
 
 .blob-url {
   color: var(--green);
-  font-size: 10px;
+  font-size: 9px;
   word-break: break-all;
-  line-height: 1.5;
+  line-height: 1.4;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-decoration: none;
 }
 
@@ -358,19 +397,20 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 .stats-bar {
   background: var(--bg1);
   border-bottom: 1px solid rgba(0,229,255,.08);
-  padding: 10px 16px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 0;
   flex-wrap: nowrap;
   overflow-x: auto;
   flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .stat-item {
   display: flex; flex-direction: column;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 12px;
   border-right: 1px solid var(--bg3);
   flex-shrink: 0;
 }
@@ -379,14 +419,15 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 .stat-item:last-child { border-right: none; }
 
 .stat-lbl {
-  font-size: 8px; letter-spacing: 2px;
+  font-size: 7px; letter-spacing: 1.5px;
   color: var(--txt3); text-transform: uppercase;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+  white-space: nowrap;
 }
 
 .stat-val {
   font-family: var(--head);
-  font-size: 20px; font-weight: 700;
+  font-size: 18px; font-weight: 700;
   line-height: 1;
 }
 
@@ -398,7 +439,7 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 /* ══ TIMER ══ */
 .timer-wrap {
   margin-left: auto;
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; gap: 10px;
   flex-shrink: 0;
 }
 
@@ -407,36 +448,36 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 }
 
 .timer-label {
-  font-size: 8px; letter-spacing: 2px;
+  font-size: 7px; letter-spacing: 1.5px;
   color: var(--txt3); text-transform: uppercase;
-  margin-bottom: 1px;
+  margin-bottom: 0;
 }
 
 .timer-digits {
   font-family: var(--head);
-  font-size: 24px; font-weight: 700;
+  font-size: 20px; font-weight: 700;
   color: var(--amber);
   text-shadow: var(--ga);
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .eta-val {
-  font-size: 10px; color: var(--txt2);
-  letter-spacing: 1px;
+  font-size: 9px; color: var(--txt2);
+  letter-spacing: .5px;
   text-align: right;
+  white-space: nowrap;
 }
 
-/* Info button near timer */
 .timer-info-btn {
-  width: 30px; height: 30px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   background: rgba(0,229,255,.08);
   border: 1px solid rgba(0,229,255,.25);
   color: var(--cyan);
   font-family: var(--head);
-  font-size: 13px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all .2s; flex-shrink: 0;
@@ -462,19 +503,19 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 .filter-bar {
   background: var(--bg1);
   border-bottom: 1px solid rgba(0,229,255,.06);
-  padding: 8px 16px;
-  display: flex; gap: 8px; align-items: center;
+  padding: 6px 12px;
+  display: flex; gap: 6px; align-items: center;
   flex-shrink: 0; flex-wrap: wrap;
 }
 
 .filter-chip {
-  padding: 5px 12px;
+  padding: 4px 10px;
   border: 1px solid var(--bg4);
-  border-radius: 20px;
+  border-radius: 18px;
   background: none;
   color: var(--txt2);
   font-family: var(--mono);
-  font-size: 10px; letter-spacing: .5px;
+  font-size: 9px; letter-spacing: .3px;
   cursor: pointer; white-space: nowrap;
   transition: all .15s;
 }
@@ -483,8 +524,8 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 .filter-chip.on { color: var(--amber); border-color: var(--amber); background: rgba(255,183,0,.06); }
 
 .filter-search {
-  flex: 1; min-width: 140px; max-width: 280px;
-  padding: 5px 10px !important; font-size: 11px !important;
+  flex: 1; min-width: 120px; max-width: 240px;
+  padding: 4px 8px !important; font-size: 10px !important;
 }
 
 /* ══ CONTENT PANES ══ */
@@ -493,17 +534,18 @@ select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns
 
 /* ══ TABLE ══ */
 .tbl-scroll {
-  flex: 1; overflow-y: auto; overflow-x: hidden;
+  flex: 1; overflow-y: auto; overflow-x: auto;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
-table { width: 100%; border-collapse: collapse; }
+table { width: 100%; border-collapse: collapse; min-width: 500px; }
 
 thead th {
   background: var(--bg2);
-  padding: 8px 12px;
-  font-size: 9px; font-weight: 700;
-  letter-spacing: 2px; color: var(--txt3);
+  padding: 7px 10px;
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 1.5px; color: var(--txt3);
   text-transform: uppercase;
   text-align: left;
   position: sticky; top: 0; z-index: 2;
@@ -513,8 +555,8 @@ thead th {
   user-select: none;
 }
 
-thead th.sort-asc::after { content: ' ▲'; font-size: 8px; margin-left: 4px; }
-thead th.sort-desc::after { content: ' ▼'; font-size: 8px; margin-left: 4px; }
+thead th.sort-asc::after { content: ' ▲'; font-size: 7px; margin-left: 3px; }
+thead th.sort-desc::after { content: ' ▼'; font-size: 7px; margin-left: 3px; }
 
 tbody tr {
   border-bottom: 1px solid var(--bg2);
@@ -524,25 +566,26 @@ tbody tr {
 tbody tr:hover { background: var(--bg2); }
 
 td {
-  padding: 7px 12px; font-size: 11px;
+  padding: 6px 10px; font-size: 10px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 160px;
 }
 
-.td-logo { width: 46px; padding: 4px 12px; max-width: 46px; }
-.td-actions { width: 100px; max-width: 100px; }
+.td-logo { width: 42px; padding: 3px 10px; max-width: 42px; text-align: center; }
+.td-actions { width: 90px; max-width: 90px; }
 
 .ch-logo {
-  width: 28px; height: 28px;
-  object-fit: cover; border-radius: 3px;
+  width: 24px; height: 24px;
+  object-fit: cover; border-radius: 2px;
   background: var(--bg2); display: block;
+  margin: 0 auto;
 }
 
 /* ══ STATUS BADGES ══ */
 .badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 3px;
-  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 2px;
+  font-size: 9px; font-weight: 700; letter-spacing: .3px;
 }
 
 .b-ok  { background: rgba(57,255,20,.08); color: var(--green); border: 1px solid rgba(57,255,20,.2); }
@@ -552,52 +595,53 @@ td {
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 /* ══ TABLE ACTION BUTTONS ══ */
-.act-btns { display: flex; gap: 4px; }
+.act-btns { display: flex; gap: 3px; justify-content: center; }
 
 .act-btn {
-  width: 26px; height: 26px;
-  border: none; border-radius: 3px;
+  width: 24px; height: 24px;
+  border: none; border-radius: 2px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 12px;
+  cursor: pointer; font-size: 11px;
   transition: all .15s; flex-shrink: 0;
 }
 
-.act-btn:hover { transform: scale(1.2); }
+.act-btn:hover { transform: scale(1.15); }
 .ab-play { background: rgba(0,229,255,.12); color: var(--cyan); border: 1px solid rgba(0,229,255,.25); }
 .ab-ext  { background: rgba(57,255,20,.08); color: var(--green); border: 1px solid rgba(57,255,20,.2); }
 .ab-fav  { background: rgba(255,183,0,.08); color: var(--amber); border: 1px solid rgba(255,183,0,.2); }
 .ab-fav.on { background: rgba(255,183,0,.2); }
+.ab-copy { background: rgba(192,68,255,.08); color: var(--purple); border: 1px solid rgba(192,68,255,.2); }
 
 /* ══ PAGER ══ */
 .pager {
   background: var(--bg1);
   border-top: 1px solid var(--bg3);
-  padding: 8px 16px;
-  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  display: flex; align-items: center; gap: 6px;
   flex-shrink: 0; flex-wrap: wrap;
 }
 
 .pg-btn {
-  padding: 5px 12px;
+  padding: 4px 10px;
   background: var(--bg2); border: 1px solid var(--bg4);
   border-radius: var(--r); color: var(--txt2);
-  font-family: var(--mono); font-size: 11px;
+  font-family: var(--mono); font-size: 10px;
   cursor: pointer; transition: all .15s;
 }
 
 .pg-btn:hover:not(:disabled) { border-color: var(--cyan2); color: var(--cyan); }
 .pg-btn:disabled { opacity: .3; cursor: not-allowed; }
-.pg-info { font-size: 10px; color: var(--txt2); flex: 1; text-align: center; }
-.pg-size { padding: 5px 8px; background: var(--bg2); border: 1px solid var(--bg4); border-radius: var(--r); color: var(--txt2); font-family: var(--mono); font-size: 11px; width: auto; }
+.pg-info { font-size: 9px; color: var(--txt2); flex: 1; text-align: center; white-space: nowrap; }
+.pg-size { padding: 4px 7px; background: var(--bg2); border: 1px solid var(--bg4); border-radius: var(--r); color: var(--txt2); font-family: var(--mono); font-size: 10px; width: auto; }
 
 /* ══ COMPARE AREA ══ */
-.compare-area { padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.compare-area { padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
 
 /* ══ VIDEO MINI PLAYER ══ */
 #miniPlayer {
   position: fixed;
-  bottom: 20px; right: 20px;
-  width: 380px;
+  bottom: 15px; right: 15px;
+  width: 340px;
   background: var(--bg);
   border: 1px solid var(--amber);
   border-radius: var(--r2);
@@ -607,35 +651,40 @@ td {
   flex-direction: column;
   overflow: hidden;
   resize: both;
-  min-width: 280px; min-height: 200px;
+  min-width: 260px; min-height: 180px;
+  max-width: 95vw; max-height: 80vh;
+  touch-action: none;
 }
 
 #miniPlayer.show { display: flex; }
 
 .mini-hdr {
   background: var(--bg2);
-  padding: 8px 12px;
-  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  display: flex; align-items: center; gap: 6px;
   border-bottom: 1px solid var(--bg3);
   cursor: move;
   flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .mini-title {
-  font-size: 11px; color: var(--amber);
+  font-size: 10px; color: var(--amber);
   flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.mini-ctrl { display: flex; gap: 5px; }
+.mini-ctrl { display: flex; gap: 4px; }
 
 .mini-btn {
-  width: 22px; height: 22px;
+  width: 20px; height: 20px;
   border: 1px solid var(--bg4);
-  border-radius: 3px; background: var(--bg3);
-  color: var(--txt2); font-size: 11px;
+  border-radius: 2px; background: var(--bg3);
+  color: var(--txt2); font-size: 10px;
   cursor: pointer; display: flex;
   align-items: center; justify-content: center;
   transition: all .15s;
+  flex-shrink: 0;
 }
 
 .mini-btn:hover { border-color: var(--red); color: var(--red); }
@@ -645,21 +694,26 @@ td {
   aspect-ratio: 16/9;
   background: #000;
   display: block;
+  object-fit: contain;
 }
 
 .mini-footer {
-  padding: 6px 12px;
-  font-size: 10px; color: var(--txt3);
-  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px;
+  font-size: 9px; color: var(--txt3);
+  display: flex; align-items: center; gap: 6px;
   background: var(--bg2);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.mini-status { flex: 1; }
-
+.mini-status { flex: 1; min-width: 80px; }
 .mini-status.ok   { color: var(--green); }
 .mini-status.err  { color: var(--red); }
 .mini-status.load { color: var(--amber); animation: blink 1s infinite; }
+
+.mini-footer .mini-btn {
+  width: auto; padding: 2px 6px; font-size: 9px;
+}
 
 /* ══ FULLSCREEN VIDEO ══ */
 #fullPlayer {
@@ -669,13 +723,14 @@ td {
   display: none;
   align-items: center; justify-content: center;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 #fullPlayer.show { display: flex; }
 
 .fp-box {
   position: relative;
-  width: 92%; max-width: 980px;
+  width: 95%; max-width: 980px;
   background: #000;
   border: 1px solid var(--amber);
   border-radius: var(--r2);
@@ -684,19 +739,19 @@ td {
 
 .fp-hdr {
   display: flex; align-items: center;
-  padding: 8px 14px;
+  padding: 7px 12px;
   background: var(--bg2);
   border-bottom: 1px solid var(--bg3);
 }
 
-.fp-title { color: var(--amber); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-title { color: var(--amber); font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .fp-close {
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   background: rgba(255,34,68,.15);
   border: 1px solid rgba(255,34,68,.3);
-  border-radius: 3px; color: var(--red);
-  font-size: 14px; cursor: pointer;
+  border-radius: 2px; color: var(--red);
+  font-size: 13px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all .15s;
 }
@@ -711,10 +766,12 @@ td {
 /* ══ MODAL ══ */
 #modal {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.7);
+  background: rgba(0,0,0,.75);
   z-index: 700;
   display: none; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 10px;
 }
 
 #modal.show { display: flex; }
@@ -723,19 +780,21 @@ td {
   background: var(--bg2);
   border: 1px solid var(--bg4);
   border-radius: var(--r2);
-  padding: 28px 32px;
-  max-width: 420px; width: 92%;
+  padding: 20px 24px;
+  max-width: 400px; width: 100%;
   text-align: center;
   animation: popIn .2s ease;
   white-space: pre-line;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-@keyframes popIn { from{transform:scale(.87);opacity:0} to{transform:scale(1);opacity:1} }
+@keyframes popIn { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
 
 .modal-title {
   font-family: var(--head);
-  font-size: 18px; font-weight: 700;
-  letter-spacing: 2px; margin-bottom: 12px;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 1.5px; margin-bottom: 10px;
 }
 
 .mt-ok  { color: var(--green); text-shadow: var(--gg); }
@@ -743,14 +802,14 @@ td {
 .mt-inf { color: var(--cyan);  text-shadow: var(--gc); }
 .mt-amb { color: var(--amber); text-shadow: var(--ga); }
 
-.modal-msg { font-size: 12px; color: var(--txt2); line-height: 1.7; margin-bottom: 22px; }
+.modal-msg { font-size: 11px; color: var(--txt2); line-height: 1.6; margin-bottom: 18px; }
 
-/* ══ INFO MODAL (timer button) ══ */
+/* ══ INFO MODAL ══ */
 .info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 16px;
   text-align: left;
 }
 
@@ -758,33 +817,71 @@ td {
   background: var(--bg3);
   border: 1px solid var(--bg4);
   border-radius: var(--r);
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .info-cell-lbl {
-  font-size: 9px; letter-spacing: 1.5px;
+  font-size: 8px; letter-spacing: 1.2px;
   color: var(--txt3); text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .info-cell-val {
   font-family: var(--head);
-  font-size: 18px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
 }
 
 /* ══ TEST MODAL ══ */
-.test-channels { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; text-align: left; }
+.test-channels { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; text-align: left; }
 
 .test-ch-row {
   background: var(--bg3);
   border: 1px solid var(--bg4);
   border-radius: var(--r);
-  padding: 8px 10px;
-  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px;
+  display: flex; align-items: center; gap: 8px;
 }
 
-.test-ch-name { flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.test-ch-st { font-size: 10px; }
+.test-ch-name { flex: 1; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.test-ch-st { font-size: 9px; }
+
+/* ══ SETTINGS PANEL ══ */
+.settings-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px; flex-wrap: wrap;
+}
+
+.settings-row label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; color: var(--txt2);
+  cursor: pointer;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+.settings-row .num-input {
+  width: 70px !important;
+  padding: 4px 6px !important;
+  font-size: 10px !important;
+}
+
+/* ══ CORS WARNING ══ */
+.cors-warning {
+  background: rgba(255,34,68,.08);
+  border: 1px solid rgba(255,34,68,.3);
+  border-radius: var(--r);
+  padding: 8px 10px;
+  margin: 8px 0;
+  font-size: 9px;
+  color: var(--red);
+  line-height: 1.4;
+}
+
+.cors-warning strong { color: var(--amber); }
 
 /* ══ SCROLLBAR ══ */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -794,22 +891,73 @@ td {
 
 /* ══ MOBILE ══ */
 @media(max-width:768px) {
-  header { padding: 0 10px; }
-  .logo-mark { font-size: 18px; }
+  :root {
+    --header-h: 48px;
+    --sidebar-w: 100%;
+  }
+  
+  html { font-size: 12px; }
+  
+  header { padding: 0 8px; }
+  .logo-mark { font-size: 17px; letter-spacing: 1px; }
   .hdr-nav { display: none; }
-  .stats-bar { padding: 8px 10px; gap: 0; }
-  .stat-item { padding: 0 10px; }
-  .stat-val { font-size: 16px; }
-  .timer-digits { font-size: 18px; }
-  .filter-bar { padding: 6px 10px; }
-  td { padding: 5px 8px; }
-  #miniPlayer { width: calc(100vw - 20px); right: 10px; bottom: 10px; }
+  
+  .app { grid-template-columns: 1fr; }
+  .sidebar { 
+    position: static !important; 
+    height: auto !important; 
+    border-right: none;
+    border-bottom: 1px solid rgba(0,229,255,.08);
+  }
+  
+  .sb-section { padding: 10px 10px; }
+  .speed-grid { grid-template-columns: 1fr; }
+  
+  .stats-bar { padding: 6px 8px; gap: 0; }
+  .stat-item { padding: 0 8px; }
+  .stat-val { font-size: 15px; }
+  .timer-digits { font-size: 17px; }
+  
+  .filter-bar { padding: 5px 8px; }
+  .filter-chip { padding: 3px 8px; font-size: 8px; }
+  
+  table { min-width: 420px; }
+  td { padding: 5px 8px; font-size: 9px; }
+  .td-logo { width: 38px; }
+  .ch-logo { width: 22px; height: 22px; }
+  
+  #miniPlayer { 
+    width: calc(100vw - 20px); 
+    right: 10px; bottom: 10px;
+    min-width: auto;
+  }
+  
   .info-grid { grid-template-columns: 1fr; }
+  
+  .modal-box { padding: 16px 20px; }
+  .modal-title { font-size: 15px; }
+  .modal-msg { font-size: 10px; }
 }
 
 @media(max-width:480px) {
   .stat-item:nth-child(n+4) { display: none; }
-  .timer-wrap { flex-direction: column; gap: 4px; align-items: flex-end; }
+  .timer-wrap { flex-direction: column; gap: 3px; align-items: flex-end; }
+  .pg-info { font-size: 8px; }
+  .act-btn { width: 22px; height: 22px; font-size: 10px; }
+  
+  /* Hide less important columns on very small screens */
+  .td-actions, .td-logo { display: none; }
+  table { min-width: 280px; }
+  td:nth-child(2) { max-width: 120px; }
+  td:nth-child(3) { display: none; }
+}
+
+/* ══ PRINT ══ */
+@media print {
+  header, .sidebar, .filter-bar, .pager, #miniPlayer, #fullPlayer, #modal { display: none !important; }
+  .app { grid-template-columns: 1fr !important; }
+  .main-panel { display: block !important; }
+  table { font-size: 9px; }
 }
 </style>
 </head>
@@ -821,13 +969,14 @@ td {
     <span class="mini-title" id="miniTitle">—</span>
     <div class="mini-ctrl">
       <button class="mini-btn" id="miniExpand" title="Развернуть">⛶</button>
-      <button class="mini-btn" id="miniClose" title="Закрыть">✕</button>
+      <button class="mini-btn" id="miniClose" title="Закрыть (ESC)">✕</button>
     </div>
   </div>
-  <video id="miniVideo" playsinline autoplay controls crossorigin="anonymous"></video>
+  <video id="miniVideo" playsinline autoplay controls crossorigin="anonymous" preload="metadata"></video>
   <div class="mini-footer">
     <span class="mini-status load" id="miniStatus">Загрузка...</span>
-    <button class="mini-btn" onclick="openExtUrl(document.getElementById('miniVideo').src||'')" style="width:auto;padding:2px 8px;font-size:10px;">↗ EXT</button>
+    <button class="mini-btn" id="miniCopy" title="Скопировать URL">📋</button>
+    <button class="mini-btn" id="miniExt" title="Открыть во внешнем плеере">↗</button>
   </div>
 </div>
 
@@ -836,7 +985,7 @@ td {
   <div class="fp-box">
     <div class="fp-hdr">
       <span class="fp-title" id="fpTitle">—</span>
-      <button class="fp-close" id="fpClose">✕</button>
+      <button class="fp-close" id="fpClose" title="Закрыть (ESC)">✕</button>
     </div>
     <video id="fullVideo" playsinline autoplay controls crossorigin="anonymous"></video>
   </div>
@@ -848,7 +997,7 @@ td {
     <div class="modal-title" id="modalTitle">—</div>
     <div class="modal-msg" id="modalMsg"></div>
     <div id="modalExtra"></div>
-    <button class="btn btn-amber" id="modalOk" style="width:auto;padding:8px 32px;margin:0 auto">OK</button>
+    <button class="btn btn-amber" id="modalOk" style="width:auto;padding:7px 28px;margin:0 auto">OK</button>
   </div>
 </div>
 
@@ -894,19 +1043,19 @@ td {
     <div class="speed-grid">
       <button class="spd-btn" data-t="500"  data-c="200" data-key="ultra">
         <span class="spd-name">⚡ ULTRA</span>
-        <span class="spd-info" data-en="200 threads / 0.5s" data-ru="200 потоков / 0.5с">200 потоков / 0.5с</span>
+        <span class="spd-info" data-en="200 thr / 0.5s" data-ru="200 потоков / 0.5с">200 потоков / 0.5с</span>
       </button>
       <button class="spd-btn on" data-t="1500" data-c="100" data-key="turbo">
         <span class="spd-name">⚡ TURBO</span>
-        <span class="spd-info" data-en="100 threads / 1.5s" data-ru="100 потоков / 1.5с">100 потоков / 1.5с</span>
+        <span class="spd-info" data-en="100 thr / 1.5s" data-ru="100 потоков / 1.5с">100 потоков / 1.5с</span>
       </button>
       <button class="spd-btn" data-t="3000" data-c="50" data-key="normal">
         <span class="spd-name">▶ NORMAL</span>
-        <span class="spd-info" data-en="50 threads / 3s" data-ru="50 потоков / 3с">50 потоков / 3с</span>
+        <span class="spd-info" data-en="50 thr / 3s" data-ru="50 потоков / 3с">50 потоков / 3с</span>
       </button>
       <button class="spd-btn" data-t="7000" data-c="20" data-key="safe">
         <span class="spd-name">🛡 SAFE</span>
-        <span class="spd-info" data-en="20 threads / 7s" data-ru="20 потоков / 7с">20 потоков / 7с</span>
+        <span class="spd-info" data-en="20 thr / 7s" data-ru="20 потоков / 7с">20 потоков / 7с</span>
       </button>
     </div>
     <div class="fld">
@@ -914,10 +1063,13 @@ td {
       <select id="timeoutSel">
         <option value="500">500 мс</option>
         <option value="1000" selected>1000 мс</option>
-        <option value="1500">1500 мс</option>
+        <option value="2000">2000 мс</option>
         <option value="3000">3000 мс</option>
         <option value="5000">5000 мс</option>
         <option value="7000">7000 мс</option>
+        <option value="10000">10000 мс</option>
+        <option value="15000">15000 мс</option>
+        <option value="30000">30000 мс</option>
       </select>
     </div>
     <div class="fld">
@@ -928,7 +1080,11 @@ td {
         <option value="100">100</option>
         <option value="150" selected>150</option>
         <option value="200">200</option>
+        <option value="300">300</option>
+        <option value="500">500</option>
+        <option value="1000">1000 ⚠️</option>
       </select>
+      <span style="font-size:8px;color:var(--txt3);margin-top:2px;display:block" data-en="⚠️ Browser limits ~6 conn/domain" data-ru="⚠️ Браузер ограничивает ~6 подключений/домен">⚠️ Браузер ограничивает ~6 подключений/домен</span>
     </div>
     <div class="spd-meter">
       <div class="spd-row">
@@ -939,26 +1095,73 @@ td {
     </div>
   </div>
 
+  <!-- ADVANCED SETTINGS -->
+  <div class="sb-section">
+    <div class="sb-label" data-en="Advanced" data-ru="Дополнительно">Дополнительно</div>
+    
+    <div class="settings-row">
+      <label>
+        <input type="checkbox" id="useHeadCheck" checked>
+        <span class="fld-lbl" data-en="Use HEAD request" data-ru="HEAD запрос">HEAD запрос</span>
+      </label>
+      <span class="hint" title="HEAD быстрее, но некоторые серверы блокируют">❓</span>
+    </div>
+    
+    <div class="settings-row">
+      <label>
+        <input type="checkbox" id="headGetFallback" checked>
+        <span class="fld-lbl" data-en="HEAD→GET fallback" data-ru="HEAD→GET если ошибка">HEAD→GET fallback</span>
+      </label>
+    </div>
+    
+    <div class="settings-row">
+      <label>
+        <input type="checkbox" id="useRangeCheck" checked>
+        <span class="fld-lbl" data-en="Use Range header" data-ru="Range: bytes=0-1023">Range header</span>
+      </label>
+    </div>
+    
+    <div class="settings-row">
+      <label>
+        <input type="checkbox" id="useCorsProxy">
+        <span class="fld-lbl" data-en="Use CORS proxy" data-ru="CORS прокси">CORS прокси</span>
+      </label>
+    </div>
+    
+    <div class="fld" id="proxyUrlFld" style="display:none">
+      <span class="fld-lbl" data-en="Proxy URL" data-ru="URL прокси">URL прокси</span>
+      <input type="text" id="proxyUrl" placeholder="https://your-proxy.com/?url=" value="https://api.allorigins.win/raw?url=">
+      <span style="font-size:8px;color:var(--txt3)" data-en="Proxy must return raw stream" data-ru="Прокси должен возвращать сырой поток">Прокси должен возвращать сырой поток</span>
+    </div>
+    
+    <div class="settings-row">
+      <label>
+        <input type="checkbox" id="rotateUA">
+        <span class="fld-lbl" data-en="Rotate User-Agent" data-ru="Ротация User-Agent">Ротация UA</span>
+      </label>
+    </div>
+    
+    <div class="settings-row">
+      <label>
+        <input type="checkbox" id="checkOnly2KB" checked>
+        <span class="fld-lbl" data-en="Check only 2KB" data-ru="Проверять только 2КБ">Проверять 2КБ</span>
+      </label>
+    </div>
+    
+    <div class="cors-warning" id="corsWarning" style="display:none">
+      <strong data-en="CORS Warning" data-ru="⚠️ CORS">⚠️ CORS</strong>: 
+      <span data-en="Many IPTV streams block browser requests. Use proxy or external player." data-ru="Многие потоки блокируют запросы из браузера. Используйте прокси или внешний плеер.">Многие потоки блокируют запросы из браузера. Используйте прокси или внешний плеер.</span>
+    </div>
+  </div>
+
   <!-- CONTROLS -->
   <div class="sb-section">
     <div class="sb-label" data-en="Controls" data-ru="Управление">Управление</div>
     <button class="btn btn-amber" id="btnCheck">▶ <span data-en="Start Check" data-ru="Запустить проверку">Запустить проверку</span></button>
     <button class="btn btn-red"   id="btnStop"   disabled>■ <span data-en="Stop" data-ru="Стоп">Стоп</span></button>
-    <button class="btn btn-cyan"  id="btnRefresh" disabled>↻ <span data-en="Refresh Status" data-ru="Обновить статус">Обновить статус</span></button>
-    <button class="btn btn-ghost" id="btnTest">🧪 <span data-en="Quick Test (3 random)" data-ru="Быстрый тест (3 рандомных)">Быстрый тест (3 рандомных)</span></button>
-    <button class="btn btn-ghost" id="btnClear">✕ <span data-en="Clear All" data-ru="Очистить всё">Очистить всё</span></button>
-  </div>
-
-  <!-- SETTINGS (NEW) -->
-  <div class="sb-section">
-    <div class="sb-label" data-en="Settings" data-ru="Настройки">Настройки</div>
-    <div class="fld">
-      <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="useHeadCheck" checked>
-        <span class="fld-lbl" data-en="Use HEAD request (faster)" data-ru="Использовать HEAD (быстрее)">Использовать HEAD (быстрее)</span>
-      </label>
-    </div>
-    <!-- можно добавить другие настройки -->
+    <button class="btn btn-cyan"  id="btnRefresh" disabled>↻ <span data-en="Refresh" data-ru="Обновить">Обновить</span></button>
+    <button class="btn btn-ghost" id="btnTest">🧪 <span data-en="Quick Test" data-ru="Быстрый тест">Быстрый тест</span></button>
+    <button class="btn btn-ghost" id="btnClear">✕ <span data-en="Clear" data-ru="Очистить">Очистить</span></button>
   </div>
 
   <!-- EXPORT -->
@@ -968,19 +1171,18 @@ td {
       <span class="fld-lbl" data-en="Format" data-ru="Формат">Формат</span>
       <select id="exportFmt">
         <option value="m3u">M3U playlist</option>
-        <option value="txt">TXT (M3U format)</option>
+        <option value="txt">TXT (M3U)</option>
         <option value="json">JSON</option>
       </select>
     </div>
-    <button class="btn btn-green" id="btnExport" disabled>⬇ <span data-en="Download Working" data-ru="Скачать рабочие">Скачать рабочие</span></button>
-    <button class="btn btn-ghost" id="btnPdf">📄 PDF <span data-en="Report" data-ru="Отчёт">Отчёт</span></button>
+    <button class="btn btn-green" id="btnExport" disabled>⬇ <span data-en="Download" data-ru="Скачать">Скачать</span></button>
+    <button class="btn btn-ghost" id="btnPdf">📄 PDF</button>
 
-    <!-- BLOB LINK -->
     <div class="blob-panel" id="blobPanel">
-      <span class="fld-lbl" data-en="Playlist link (for VLC/Kodi)" data-ru="Ссылка на плейлист (для VLC/Kodi)">Ссылка на плейлист (для VLC/Kodi)</span>
+      <span class="fld-lbl" data-en="Playlist link (VLC/Kodi)" data-ru="Ссылка (VLC/Kodi)">Ссылка (VLC/Kodi)</span>
       <a class="blob-url" id="blobLink" href="#" target="_blank">—</a>
-      <button class="btn btn-ghost" id="btnCopyBlob" style="margin-bottom:5px;font-size:10px">📋 <span data-en="Copy Link" data-ru="Копировать ссылку">Копировать ссылку</span></button>
-      <button class="btn btn-ghost" id="btnRevokeBlob" style="font-size:10px">✕ <span data-en="Delete Link" data-ru="Удалить ссылку">Удалить ссылку</span></button>
+      <button class="btn btn-ghost" id="btnCopyBlob" style="margin-bottom:4px;font-size:9px">📋 <span data-en="Copy" data-ru="Копировать">Копировать</span></button>
+      <button class="btn btn-ghost" id="btnRevokeBlob" style="font-size:9px">✕ <span data-en="Delete" data-ru="Удалить">Удалить</span></button>
     </div>
   </div>
 
@@ -1047,9 +1249,9 @@ td {
       <table>
         <thead><tr>
           <th class="td-logo">LOGO</th>
-          <th style="min-width:140px" data-en="NAME" data-ru="НАЗВАНИЕ" data-sort="name">НАЗВАНИЕ</th>
-          <th style="min-width:100px" data-en="GROUP" data-ru="ГРУППА" data-sort="group">ГРУППА</th>
-          <th style="width:110px"     data-en="STATUS" data-ru="СТАТУС" data-sort="status">СТАТУС</th>
+          <th style="min-width:120px" data-en="NAME" data-ru="НАЗВАНИЕ" data-sort="name">НАЗВАНИЕ</th>
+          <th style="min-width:90px" data-en="GROUP" data-ru="ГРУППА" data-sort="group">ГРУППА</th>
+          <th style="width:100px"     data-en="STATUS" data-ru="СТАТУС" data-sort="status">СТАТУС</th>
           <th class="td-actions"      data-en="ACTIONS" data-ru="ДЕЙСТВИЯ">ДЕЙСТВИЯ</th>
         </tr></thead>
         <tbody id="resTbody"></tbody>
@@ -1065,7 +1267,7 @@ td {
         <option value="250">250</option>
         <option value="500">500</option>
       </select>
-      <span style="font-size:10px;color:var(--txt3)" id="pgCount"></span>
+      <span style="font-size:9px;color:var(--txt3)" id="pgCount"></span>
     </div>
   </div>
 
@@ -1089,11 +1291,11 @@ td {
   <div class="pane" id="pane-compare">
     <div class="compare-area">
       <div class="fld">
-        <span class="fld-lbl" data-en="Second Playlist File" data-ru="Второй плейлист">Второй плейлист</span>
+        <span class="fld-lbl" data-en="Second Playlist" data-ru="Второй плейлист">Второй плейлист</span>
         <input type="file" id="cmpFile" accept=".m3u,.m3u8,.txt,.json">
       </div>
-      <button class="btn btn-cyan" id="btnCompare" style="width:auto">⚖ <span data-en="Compare Playlists" data-ru="Сравнить плейлисты">Сравнить плейлисты</span></button>
-      <div class="tbl-scroll" id="cmpWrap" style="display:none;max-height:55vh">
+      <button class="btn btn-cyan" id="btnCompare" style="width:auto">⚖ <span data-en="Compare" data-ru="Сравнить">Сравнить</span></button>
+      <div class="tbl-scroll" id="cmpWrap" style="display:none;max-height:50vh">
         <table>
           <thead><tr>
             <th data-en="NAME" data-ru="НАЗВАНИЕ">НАЗВАНИЕ</th>
@@ -1112,14 +1314,17 @@ td {
 
 <script>
 /* ════════════════════════════════════════════════
-   INDEX33 v4.1 — Улучшенная версия
-   — HEAD запросы для ускорения
-   — Сортировка по клику на заголовки
-   — Сохранение настроек в localStorage
-   — Увеличенные лимиты по умолчанию (таймаут 1000, потоки 150)
+   INDEX33 PRO v5.0 — GitHub Pages Optimized
+   Features:
+   • Smart domain-based throttling (bypasses browser limits)
+   • CORS proxy support with custom URL
+   • HEAD/GET fallback, Range requests, UA rotation
+   • Quick preview player for working channels
+   • Fully responsive + touch support
+   • Settings persistence in localStorage
 ════════════════════════════════════════════════ */
 
-const DLOGO = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="3" fill="%230b1018"/><text x="14" y="19" font-size="10" text-anchor="middle" fill="%232a3848" font-family="monospace">TV</text></svg>';
+const DLOGO = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" rx="2" fill="%230b1018"/><text x="12" y="16" font-size="8" text-anchor="middle" fill="%232a3848" font-family="monospace">TV</text></svg>';
 
 /* ── STATE ── */
 let allResults  = [];
@@ -1136,32 +1341,138 @@ let timerIv     = null;
 let timerT0     = 0;
 let spdIv       = null;
 let lastDone    = 0;
-let lang        = 'ru';
+let lang        = localStorage.getItem('i33_lang') || 'ru';
+let domainQueue = {}; // For smart throttling per domain
+let checkedDomains = new Map(); // Cache domain check results
 
-// Sorting
+/* User-Agent pool for rotation */
+const UA_POOL = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.43 Mobile Safari/537.36'
+];
+
+/* Sorting */
 let sortColumn = 'name';
 let sortDirection = 'asc';
 
 /* ══════════════ LANG ══════════════ */
+function t(key) {
+  const translations = {
+    'check_start': {ru: 'Запустить проверку', en: 'Start Check'},
+    'check_stop': {ru: 'Стоп', en: 'Stop'},
+    'check_refresh': {ru: 'Обновить', en: 'Refresh'},
+    'quick_test': {ru: 'Быстрый тест', en: 'Quick Test'},
+    'clear_all': {ru: 'Очистить', en: 'Clear'},
+    'download': {ru: 'Скачать', en: 'Download'},
+    'copy': {ru: 'Копировать', en: 'Copy'},
+    'delete': {ru: 'Удалить', en: 'Delete'},
+    'watch': {ru: 'Смотреть', en: 'Watch'},
+    'external': {ru: 'Внешний плеер', en: 'External player'},
+    'favorite': {ru: 'Избранное', en: 'Favorite'},
+    'copy_url': {ru: 'Копировать URL', en: 'Copy URL'},
+    'loading': {ru: 'Загрузка...', en: 'Loading...'},
+    'playing': {ru: '✔ Воспроизводится', en: '✔ Playing'},
+    'stream_error': {ru: '✕ Ошибка потока', en: '✕ Stream error'},
+    'cannot_play': {ru: '✕ Не воспроизводится', en: '✕ Cannot play'},
+    'cors_warning': {ru: '⚠️ CORS: Многие потоки блокируют запросы из браузера. Используйте прокси.', en: '⚠️ CORS: Many streams block browser requests. Use proxy.'},
+    'browser_limit': {ru: '⚠️ Браузер ограничивает ~6 подключений к одному домену', en: '⚠️ Browser limits ~6 connections per domain'},
+    'proxy_hint': {ru: 'Прокси должен возвращать сырой поток', en: 'Proxy must return raw stream'},
+    'no_working': {ru: 'Нет рабочих каналов', en: 'No working channels'},
+    'check_first': {ru: 'Сначала запустите проверку', en: 'Run check first'},
+    'done': {ru: '✔ ГОТОВО', en: '✔ DONE'},
+    'working': {ru: 'Рабочих', en: 'Working'},
+    'time': {ru: 'Время', en: 'Time'},
+    'dupes_removed': {ru: 'Дублей удалено', en: 'Dupes removed'},
+    'error': {ru: '✕ ОШИБКА', en: '✕ ERROR'},
+    'file_empty': {ru: 'Файл пустой', en: 'File is empty'},
+    'no_links': {ru: 'Ссылки не найдены', en: 'No links found'},
+    'select_source': {ru: 'Выберите файл или введите URL', en: 'Select file or enter URL'},
+    'file_read_error': {ru: 'Ошибка чтения файла', en: 'File read error'},
+    'stopped': {ru: '■ СТОП', en: '■ STOPPED'},
+    'checked': {ru: 'Проверено', en: 'Checked'},
+    'refreshed': {ru: '✔ ОБНОВЛЕНО', en: '✔ REFRESHED'},
+    'export_title': {ru: '⬇ ЭКСПОРТ', en: '⬇ EXPORT'},
+    'channels': {ru: 'рабочих каналов', en: 'working channels'},
+    'blob_ready': {ru: 'Blob-ссылка создана — вставь в VLC → Медиа → Открыть URL', en: 'Blob link ready — paste in VLC → Media → Open URL'},
+    'copied': {ru: '📋 СКОПИРОВАНО', en: '📋 COPIED'},
+    'link_copied': {ru: 'Ссылка в буфере. Вставь в VLC: Медиа → Открыть URL', en: 'Link copied. Paste in VLC: Media → Open URL'},
+    'test_title': {ru: '🧪 БЫСТРЫЙ ТЕСТ', en: '🧪 QUICK TEST'},
+    'test_msg': {ru: '3 случайных рабочих канала.\nНажми ▶ чтобы открыть в мини-плеере:', en: '3 random working channels.\nPress ▶ to open in mini player:'},
+    'compare_title': {ru: '⚖ СРАВНЕНИЕ', en: '⚖ COMPARE'},
+    'first': {ru: 'Первый', en: 'First'},
+    'second': {ru: 'Второй', en: 'Second'},
+    'dupes': {ru: 'Дублей', en: 'Dupes'},
+    'unique': {ru: 'Уникальных', en: 'Unique'},
+    '2nd_playlist': {ru: '2-й плейлист', en: '2nd playlist'},
+    'duplicate': {ru: 'ДУБЛИКАТ', en: 'DUPLICATE'},
+    'unique_item': {ru: 'УНИКАЛЬНЫЙ', en: 'UNIQUE'},
+    'live': {ru: 'РАБОЧИЙ', en: 'LIVE'},
+    'dead': {ru: 'МЁРТВЫЙ', en: 'DEAD'},
+    'checking': {ru: 'ПРОВЕРКА', en: 'CHECK'},
+    'all': {ru: 'ВСЕ', en: 'ALL'},
+    'available': {ru: '✔ РАБОЧИЕ', en: '✔ LIVE'},
+    'unavailable': {ru: '✕ МЁРТВЫЕ', en: '✕ DEAD'},
+    'total': {ru: 'Всего', en: 'Total'},
+    'left': {ru: 'Осталось', en: 'Left'},
+    'elapsed': {ru: 'Прошло', en: 'Elapsed'},
+    'speed': {ru: 'Скорость', en: 'Speed'},
+    'groups': {ru: 'Группы', en: 'Groups'},
+    'favorites': {ru: 'Избранных', en: 'Favorites'},
+    'rate': {ru: 'Скорость', en: 'Rate'},
+    'alive_pct': {ru: '% живых', en: '% alive'}
+  };
+  return translations[key]?.[lang] || key;
+}
+
 function setLang(l) {
   lang = l;
   localStorage.setItem('i33_lang', l);
-  document.querySelectorAll('[data-'+l+']').forEach(el => {
-    if (el.tagName !== 'INPUT' && el.tagName !== 'BUTTON') {
-      el.textContent = el.getAttribute('data-'+l);
+  
+  // Update all translatable elements
+  document.querySelectorAll('[data-ru][data-en]').forEach(el => {
+    if (el.classList.contains('lang-btn')) return;
+    const key = el.dataset.en?.toLowerCase().replace(/\s+/g, '_') || el.dataset.ru?.toLowerCase().replace(/\s+/g, '_');
+    if (key && t(key)) {
+      if (el.tagName === 'INPUT' && el.type === 'text' && el.placeholder) {
+        // Keep placeholder as is or update if needed
+      } else if (el.tagName !== 'INPUT') {
+        el.textContent = el.getAttribute(`data-${l}`);
+      }
     }
   });
-  // chips
-  document.querySelectorAll('.filter-chip[data-'+l+']').forEach(el => {
-    el.textContent = el.getAttribute('data-'+l);
+  
+  // Update filter chips
+  document.querySelectorAll('.filter-chip[data-ru][data-en]').forEach(el => {
+    el.textContent = el.getAttribute(`data-${l}`);
   });
-  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
-  // placeholder search
-  document.getElementById('srchIn').placeholder = l==='ru' ? '🔍 Поиск по названию / группе...' : '🔍 Search by name / group...';
-  // speed preset info
-  document.querySelectorAll('.spd-btn .spd-info[data-'+l+']').forEach(el => {
-    el.textContent = el.getAttribute('data-'+l);
+  
+  // Update speed preset info
+  document.querySelectorAll('.spd-btn .spd-info[data-ru][data-en]').forEach(el => {
+    el.textContent = el.getAttribute(`data-${l}`);
   });
+  
+  // Update buttons text
+  document.getElementById('btnCheck').innerHTML = `▶ ${t('check_start')}`;
+  document.getElementById('btnStop').innerHTML = `■ ${t('check_stop')}`;
+  document.getElementById('btnRefresh').innerHTML = `↻ ${t('check_refresh')}`;
+  document.getElementById('btnTest').innerHTML = `🧪 ${t('quick_test')}`;
+  document.getElementById('btnClear').innerHTML = `✕ ${t('clear_all')}`;
+  document.getElementById('btnExport').innerHTML = `⬇ ${t('download')}`;
+  
+  // Update search placeholder
+  document.getElementById('srchIn').placeholder = l==='ru' ? '🔍 Поиск...' : '🔍 Search...';
+  
+  // Update language buttons
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.lang === l);
+  });
+  
+  // Re-render if needed
+  if (filtCache.length) { rebuildFilter(); renderPage(); }
+  if (favorites.length) renderFav();
 }
 
 document.querySelectorAll('.lang-btn').forEach(b => {
@@ -1189,6 +1500,13 @@ document.querySelectorAll('.spd-btn').forEach(b => {
     document.getElementById('concurrencySel').value = b.dataset.c;
     saveSettings();
   });
+});
+
+/* ══════════════ CORS PROXY TOGGLE ══════════════ */
+document.getElementById('useCorsProxy').addEventListener('change', (e) => {
+  document.getElementById('proxyUrlFld').style.display = e.target.checked ? 'block' : 'none';
+  document.getElementById('corsWarning').style.display = e.target.checked ? 'none' : 'block';
+  saveSettings();
 });
 
 /* ══════════════ TIMER ══════════════ */
@@ -1267,14 +1585,14 @@ document.getElementById('btnInfo').addEventListener('click', () => {
   const rate = s > 0 ? Math.round(ok/s) : 0;
 
   const extra = `<div class="info-grid">
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Всего':'Total'}</div><div class="info-cell-val" style="color:var(--cyan)">${allResults.length}</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Рабочих':'Working'}</div><div class="info-cell-val" style="color:var(--green)">${ok}</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Мёртвых':'Dead'}</div><div class="info-cell-val" style="color:var(--red)">${dead}</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Осталось':'Remaining'}</div><div class="info-cell-val" style="color:var(--amber)">${rem}</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'% живых':'% alive'}</div><div class="info-cell-val" style="color:var(--green)">${pct}%</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Избранных':'Favorites'}</div><div class="info-cell-val" style="color:var(--amber)">${favs}</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Групп':'Groups'}</div><div class="info-cell-val" style="color:var(--cyan)">${grps}</div></div>
-    <div class="info-cell"><div class="info-cell-lbl">${lang==='ru'?'Скорость':'Rate'}</div><div class="info-cell-val" style="color:var(--amber)">${rate} ch/s</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('total')}</div><div class="info-cell-val" style="color:var(--cyan)">${allResults.length}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('working')}</div><div class="info-cell-val" style="color:var(--green)">${ok}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('dead')}</div><div class="info-cell-val" style="color:var(--red)">${dead}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('left')}</div><div class="info-cell-val" style="color:var(--amber)">${rem}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('alive_pct')}</div><div class="info-cell-val" style="color:var(--green)">${pct}%</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('favorites')}</div><div class="info-cell-val" style="color:var(--amber)">${favs}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('groups')}</div><div class="info-cell-val" style="color:var(--cyan)">${grps}</div></div>
+    <div class="info-cell"><div class="info-cell-lbl">${t('rate')}</div><div class="info-cell-val" style="color:var(--amber)">${rate} ch/s</div></div>
   </div>`;
 
   modal('INDEX33 // INFO', `${lang==='ru'?'Время проверки':'Check time'}: ${elapsed}`, 'amb', extra);
@@ -1325,71 +1643,170 @@ function parseJSON(content) {
 
 function parseInput(content,type){ return type==='JSON'?parseJSON(content):parseM3U(content); }
 
-/* ══════════════ CHECK LINK (УЛУЧШЕНО) ══════════════ */
-async function checkLink(url) {
-  const useHead = document.getElementById('useHeadCheck').checked;
-  const timeout = parseInt(document.getElementById('timeoutSel').value) || 1000;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-
+/* ══════════════ SMART DOMAIN THROTTLING ══════════════ */
+function getDomain(url) {
   try {
-    if (useHead) {
-      // Пробуем HEAD
-      const headResponse = await fetch(url, {
-        signal: controller.signal,
-        method: 'HEAD',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'video/mp4,video/x-matroska,application/vnd.apple.mpegurl,*/*'
-        },
-        cache: 'no-store'
-      });
-      clearTimeout(timeoutId);
-      const contentType = headResponse.headers.get('Content-Type') || '';
-      const isPlayable = headResponse.ok && (
-        contentType.includes('video') ||
-        contentType.includes('application/vnd.apple.mpegurl') ||
-        contentType.includes('application/octet-stream')
-      );
-      return isPlayable;
+    const u = new URL(url);
+    return u.hostname;
+  } catch { return 'unknown'; }
+}
+
+async function smartFetch(url, options = {}) {
+  const domain = getDomain(url);
+  
+  // Initialize queue for domain if needed
+  if (!domainQueue[domain]) {
+    domainQueue[domain] = { queue: [], active: 0, max: 6 }; // Browser limit per domain
+  }
+  
+  return new Promise((resolve, reject) => {
+    const task = () => {
+      fetch(url, options)
+        .then(resolve)
+        .catch(reject)
+        .finally(() => {
+          domainQueue[domain].active--;
+          // Process next in queue
+          if (domainQueue[domain].queue.length > 0) {
+            const next = domainQueue[domain].queue.shift();
+            domainQueue[domain].active++;
+            next();
+          }
+        });
+    };
+    
+    if (domainQueue[domain].active < domainQueue[domain].max) {
+      domainQueue[domain].active++;
+      task();
     } else {
-      // GET с Range
-      const getResponse = await fetch(url, {
-        signal: controller.signal,
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'video/mp4,video/x-matroska,application/vnd.apple.mpegurl,*/*',
-          'Range': 'bytes=0-1023'
-        },
-        cache: 'no-store'
-      });
-      clearTimeout(timeoutId);
-      const contentType = getResponse.headers.get('Content-Type') || '';
-      const isPlayable = getResponse.ok && (
-        contentType.includes('video') ||
-        contentType.includes('application/vnd.apple.mpegurl') ||
-        contentType.includes('application/octet-stream')
-      );
-      return isPlayable;
+      domainQueue[domain].queue.push(task);
     }
+  });
+}
+
+/* ══════════════ CHECK LINK (OPTIMIZED) ══════════════ */
+async function checkLink(url) {
+  const settings = {
+    timeout: parseInt(document.getElementById('timeoutSel').value) || 1000,
+    useHead: document.getElementById('useHeadCheck').checked,
+    headGetFallback: document.getElementById('headGetFallback').checked,
+    useRange: document.getElementById('useRangeCheck').checked,
+    useCorsProxy: document.getElementById('useCorsProxy').checked,
+    proxyUrl: document.getElementById('proxyUrl').value.trim(),
+    rotateUA: document.getElementById('rotateUA').checked,
+    checkOnly2KB: document.getElementById('checkOnly2KB').checked
+  };
+  
+  // Apply CORS proxy if enabled
+  let checkUrl = url;
+  if (settings.useCorsProxy && settings.proxyUrl) {
+    checkUrl = settings.proxyUrl + encodeURIComponent(url);
+  }
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), settings.timeout);
+  
+  const headers = {
+    'Accept': 'video/mp4,video/x-matroska,application/vnd.apple.mpegurl,application/octet-stream,*/*',
+    'Cache-Control': 'no-cache'
+  };
+  
+  if (settings.rotateUA) {
+    headers['User-Agent'] = UA_POOL[Math.floor(Math.random() * UA_POOL.length)];
+  } else {
+    headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+  
+  if (settings.useRange && settings.checkOnly2KB) {
+    headers['Range'] = 'bytes=0-2047';
+  }
+  
+  try {
+    // Try HEAD first if enabled
+    if (settings.useHead) {
+      try {
+        const headResp = await smartFetch(checkUrl, {
+          signal: controller.signal,
+          method: 'HEAD',
+          headers,
+          cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        
+        const ct = headResp.headers.get('Content-Type') || '';
+        const isPlayable = headResp.ok && (
+          ct.includes('video') ||
+          ct.includes('application/vnd.apple.mpegurl') ||
+          ct.includes('application/octet-stream') ||
+          headResp.status === 200 || headResp.status === 206
+        );
+        
+        // Cache domain result
+        checkedDomains.set(getDomain(url), { ok: isPlayable, ts: Date.now() });
+        return isPlayable;
+      } catch (headErr) {
+        if (!settings.headGetFallback) throw headErr;
+        // Fallback to GET below
+      }
+    }
+    
+    // GET request
+    const getResp = await smartFetch(checkUrl, {
+      signal: controller.signal,
+      method: 'GET',
+      headers,
+      cache: 'no-store'
+    });
+    clearTimeout(timeoutId);
+    
+    const ct = getResp.headers.get('Content-Type') || '';
+    const isPlayable = getResp.ok && (
+      ct.includes('video') ||
+      ct.includes('application/vnd.apple.mpegurl') ||
+      ct.includes('application/octet-stream') ||
+      getResp.status === 200 || getResp.status === 206
+    );
+    
+    checkedDomains.set(getDomain(url), { ok: isPlayable, ts: Date.now() });
+    return isPlayable;
+    
   } catch (error) {
     clearTimeout(timeoutId);
+    
+    // Check cache for domain
+    const domain = getDomain(url);
+    const cached = checkedDomains.get(domain);
+    if (cached && (Date.now() - cached.ts) < 300000) { // 5 min cache
+      return cached.ok;
+    }
+    
     return false;
   }
 }
 
-/* ══════════════ POOL ══════════════ */
+/* ══════════════ POOL WITH SMART THROTTLING ══════════════ */
 async function runPool(items, concurrency, fn) {
   let idx = 0;
+  
   async function worker() {
     while (idx < items.length && !stopFlag) {
       const i = idx++;
-      await fn(items[i], i);
+      try {
+        await fn(items[i], i);
+      } catch (e) {
+        console.warn('Worker error:', e);
+      }
     }
   }
+  
+  // Respect browser limits: max effective concurrency ~6 per domain
+  // So we cap total concurrency to avoid overwhelming
+  const effectiveConcurrency = Math.min(concurrency, 300); // Safe upper limit
+  
   const ws = [];
-  for (let w=0; w<Math.min(concurrency,items.length); w++) ws.push(worker());
+  for (let w = 0; w < Math.min(effectiveConcurrency, items.length); w++) {
+    ws.push(worker());
+  }
   await Promise.all(ws);
 }
 
@@ -1400,14 +1817,16 @@ async function processLinks(data) {
   curPage    = 1;
   updateStats();
 
-  const conc  = parseInt(document.getElementById('concurrencySel').value)||150;
+  const conc  = parseInt(document.getElementById('concurrencySel').value) || 150;
   const total = allResults.length;
   let uiT     = Date.now();
 
   await runPool(allResults, conc, async (item, i) => {
+    if (stopFlag) return;
     allResults[i].status = await checkLink(item.host) ? 'Available' : 'Unavailable';
+    
     const now = Date.now();
-    if (now - uiT > 250) {
+    if (now - uiT > 200) { // More frequent UI updates
       uiT = now;
       const done = allResults.filter(r=>r.status!=='Checking').length;
       setProg((done/total)*100);
@@ -1446,51 +1865,67 @@ function rebuildFilter() {
 }
 
 function sortData(data) {
-  return data.sort((a, b) => {
+  return [...data].sort((a, b) => {
     let valA = a[sortColumn];
     let valB = b[sortColumn];
+    
     if (sortColumn === 'status') {
       const order = { 'Available': 1, 'Unavailable': 2, 'Checking': 3 };
       valA = order[a.status] || 4;
       valB = order[b.status] || 4;
-    } else {
-      if (typeof valA === 'string') valA = valA.toLowerCase();
-      if (typeof valB === 'string') valB = valB.toLowerCase();
+    } else if (typeof valA === 'string') {
+      valA = valA.toLowerCase();
+      valB = valB.toLowerCase();
     }
+    
     if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
     if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
 }
 
-function E(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function E(s){ 
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;'); 
+}
 
 function renderPage() {
   const total = filtCache.length;
   const pages = Math.max(1, Math.ceil(total/pgSz));
   if (curPage>pages) curPage=pages;
-  const sorted = sortData([...filtCache]); // копируем для сортировки
+  const sorted = sortData(filtCache);
   const sl = sorted.slice((curPage-1)*pgSz, curPage*pgSz);
 
   let html='';
   for (const r of sl) {
     const fav = favorites.some(f=>f.host===r.host);
     const stBadge = r.status==='Available'
-      ? `<span class="badge b-ok">● ${lang==='ru'?'РАБОЧИЙ':'LIVE'}</span>`
+      ? `<span class="badge b-ok">● ${t('live')}</span>`
       : r.status==='Unavailable'
-      ? `<span class="badge b-err">✕ ${lang==='ru'?'МЁРТВЫЙ':'DEAD'}</span>`
-      : `<span class="badge b-chk">⟳ ${lang==='ru'?'ПРОВЕРКА':'CHECK'}</span>`;
+      ? `<span class="badge b-err">✕ ${t('dead')}</span>`
+      : `<span class="badge b-chk">⟳ ${t('checking')}</span>`;
 
     const acts = r.status==='Available'
       ? `<div class="act-btns">
-          <button class="act-btn ab-play" title="${lang==='ru'?'Смотреть':'Watch'}"  onclick="openMini('${E(r.host)}','${E(r.name)}')">▶</button>
-          <button class="act-btn ab-ext"  title="${lang==='ru'?'Внешний плеер':'External player'}" onclick="openExtUrl('${E(r.host)}')">↗</button>
-          <button class="act-btn ab-fav ${fav?'on':''}" title="${lang==='ru'?'Избранное':'Favorite'}" onclick="toggleFav('${E(r.host)}')">★</button>
+          <button class="act-btn ab-play" title="${t('watch')}"  onclick="openMini('${E(r.host)}','${E(r.name)}')">▶</button>
+          <button class="act-btn ab-ext"  title="${t('external')}" onclick="openExtUrl('${E(r.host)}')">↗</button>
+          <button class="act-btn ab-copy" title="${t('copy_url')}" onclick="copyUrl('${E(r.host)}')">📋</button>
+          <button class="act-btn ab-fav ${fav?'on':''}" title="${t('favorite')}" onclick="toggleFav('${E(r.host)}')">★</button>
+        </div>`
+      : r.status==='Unavailable' 
+      ? `<div class="act-btns">
+          <button class="act-btn ab-ext" title="${t('external')}" onclick="openExtUrl('${E(r.host)}')">↗</button>
+          <button class="act-btn ab-copy" title="${t('copy_url')}" onclick="copyUrl('${E(r.host)}')">📋</button>
         </div>`
       : '';
 
     html += `<tr>
-      <td class="td-logo"><img class="ch-logo" src="${E(r.logo)}" onerror="this.src='${DLOGO}'" loading="lazy"></td>
+      <td class="td-logo"><img class="ch-logo" src="${E(r.logo)}" onerror="this.src='${DLOGO}'" loading="lazy" alt=""></td>
       <td title="${E(r.name)}">${E(r.name)}</td>
       <td title="${E(r.group)}" style="color:var(--txt2)">${E(r.group)}</td>
       <td>${stBadge}</td>
@@ -1504,7 +1939,7 @@ function renderPage() {
   document.getElementById('pgPrev').disabled = curPage<=1;
   document.getElementById('pgNext').disabled = curPage>=pages;
 
-  // Обновляем классы сортировки в заголовках
+  // Update sort indicators
   document.querySelectorAll('thead th[data-sort]').forEach(th => {
     th.classList.remove('sort-asc', 'sort-desc');
     if (th.dataset.sort === sortColumn) {
@@ -1512,6 +1947,25 @@ function renderPage() {
     }
   });
 }
+
+/* ══════════════ COPY URL ══════════════ */
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    modal(t('copied'), t('link_copied'), 'ok');
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    modal(t('copied'), t('link_copied'), 'ok');
+  });
+}
+window.copyUrl = copyUrl;
 
 /* ══════════════ PAGER ══════════════ */
 document.getElementById('pgPrev').addEventListener('click',()=>{curPage--;renderPage();});
@@ -1559,13 +2013,14 @@ function renderFav() {
   let html='';
   for(const r of favorites){
     html+=`<tr>
-      <td class="td-logo"><img class="ch-logo" src="${E(r.logo)}" onerror="this.src='${DLOGO}'" loading="lazy"></td>
+      <td class="td-logo"><img class="ch-logo" src="${E(r.logo)}" onerror="this.src='${DLOGO}'" loading="lazy" alt=""></td>
       <td title="${E(r.name)}">${E(r.name)}</td>
       <td style="color:var(--txt2)">${E(r.group)}</td>
-      <td><span class="badge b-ok">● ${lang==='ru'?'РАБОЧИЙ':'LIVE'}</span></td>
+      <td><span class="badge b-ok">● ${t('live')}</span></td>
       <td class="td-actions"><div class="act-btns">
         <button class="act-btn ab-play" onclick="openMini('${E(r.host)}','${E(r.name)}')">▶</button>
         <button class="act-btn ab-ext"  onclick="openExtUrl('${E(r.host)}')">↗</button>
+        <button class="act-btn ab-copy" onclick="copyUrl('${E(r.host)}')">📋</button>
         <button class="act-btn ab-fav on" onclick="toggleFav('${E(r.host)}')">★</button>
       </div></td>
     </tr>`;
@@ -1634,7 +2089,13 @@ function saveSettings() {
   const settings = {
     timeout: document.getElementById('timeoutSel').value,
     concurrency: document.getElementById('concurrencySel').value,
-    useHead: document.getElementById('useHeadCheck').checked
+    useHead: document.getElementById('useHeadCheck').checked,
+    headGetFallback: document.getElementById('headGetFallback').checked,
+    useRange: document.getElementById('useRangeCheck').checked,
+    useCorsProxy: document.getElementById('useCorsProxy').checked,
+    proxyUrl: document.getElementById('proxyUrl').value,
+    rotateUA: document.getElementById('rotateUA').checked,
+    checkOnly2KB: document.getElementById('checkOnly2KB').checked
   };
   localStorage.setItem('i33_settings', JSON.stringify(settings));
 }
@@ -1646,10 +2107,23 @@ function loadSettings() {
       const s = JSON.parse(saved);
       document.getElementById('timeoutSel').value = s.timeout || '1000';
       document.getElementById('concurrencySel').value = s.concurrency || '150';
-      document.getElementById('useHeadCheck').checked = s.useHead !== false; // по умолчанию true
+      document.getElementById('useHeadCheck').checked = s.useHead !== false;
+      document.getElementById('headGetFallback').checked = s.headGetFallback !== false;
+      document.getElementById('useRangeCheck').checked = s.useRange !== false;
+      document.getElementById('useCorsProxy').checked = !!s.useCorsProxy;
+      document.getElementById('proxyUrl').value = s.proxyUrl || 'https://api.allorigins.win/raw?url=';
+      document.getElementById('rotateUA').checked = !!s.rotateUA;
+      document.getElementById('checkOnly2KB').checked = s.checkOnly2KB !== false;
     } catch (e) {}
   }
-  // Подсветка пресета скорости по значениям
+  
+  // Show/hide proxy field
+  document.getElementById('proxyUrlFld').style.display = 
+    document.getElementById('useCorsProxy').checked ? 'block' : 'none';
+  document.getElementById('corsWarning').style.display = 
+    document.getElementById('useCorsProxy').checked ? 'none' : 'block';
+  
+  // Highlight active speed preset
   const t = parseInt(document.getElementById('timeoutSel').value);
   const c = parseInt(document.getElementById('concurrencySel').value);
   document.querySelectorAll('.spd-btn').forEach(btn => {
@@ -1659,17 +2133,19 @@ function loadSettings() {
   });
 }
 
-// Сохранять настройки при изменении
-document.getElementById('timeoutSel').addEventListener('change', saveSettings);
-document.getElementById('concurrencySel').addEventListener('change', saveSettings);
-document.getElementById('useHeadCheck').addEventListener('change', saveSettings);
+// Save settings on change
+['timeoutSel','concurrencySel','useHeadCheck','headGetFallback','useRangeCheck','useCorsProxy','proxyUrl','rotateUA','checkOnly2KB'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', saveSettings);
+  if(el && id === 'proxyUrl') el.addEventListener('input', saveSettings);
+});
 
 /* ══════════════ READ FILE ══════════════ */
 function readFile(file) {
   return new Promise((res,rej)=>{
     const fr=new FileReader();
     fr.onload=e=>res(e.target.result);
-    fr.onerror=()=>rej(new Error(lang==='ru'?'Ошибка чтения файла':'File read error'));
+    fr.onerror=()=>rej(new Error(t('file_read_error')));
     fr.readAsText(file,'UTF-8');
   });
 }
@@ -1704,17 +2180,17 @@ document.getElementById('btnCheck').addEventListener('click', async () => {
       content=await resp.text();
       type=detectType(url,content);
     } else {
-      throw new Error(lang==='ru'?'Выберите файл или введите URL':'Select file or enter URL');
+      throw new Error(t('select_source'));
     }
 
-    if(!content.trim()) throw new Error(lang==='ru'?'Файл пустой':'File is empty');
+    if(!content.trim()) throw new Error(t('file_empty'));
     setProg(5);
     await new Promise(r=>setTimeout(r,0));
 
     const links = parseInput(content, type);
-    if(!links.length) throw new Error(lang==='ru'?'Ссылки не найдены':'No links found');
+    if(!links.length) throw new Error(t('no_links'));
 
-    // Дедупликация
+    // Deduplicate
     const seen=new Set();
     const uniq=links.filter(l=>{ if(seen.has(l.host))return false; seen.add(l.host); return true; });
     const dupes=links.length-uniq.length;
@@ -1727,13 +2203,13 @@ document.getElementById('btnCheck').addEventListener('click', async () => {
     stopTimer(); stopSpd();
 
     modal(
-      lang==='ru'?'✔ ГОТОВО':'✔ DONE',
-      `${lang==='ru'?'Рабочих':'Working'}: ${ok} / ${uniq.length}\n${lang==='ru'?'Дублей удалено':'Dupes removed'}: ${dupes}\n${lang==='ru'?'Время':'Time'}: ${pad(Math.floor(el/60))}:${pad(el%60)}`,
+      t('done'),
+      `${t('working')}: ${ok} / ${uniq.length}\n${t('dupes_removed')}: ${dupes}\n${t('time')}: ${pad(Math.floor(el/60))}:${pad(el%60)}`,
       'ok'
     );
   } catch(e) {
     stopTimer(); stopSpd();
-    modal(lang==='ru'?'✕ ОШИБКА':'✕ ERROR', e.message, 'err');
+    modal(t('error'), e.message, 'err');
     console.error(e);
   } finally {
     document.getElementById('btnCheck').disabled   = false;
@@ -1750,15 +2226,15 @@ document.getElementById('btnStop').addEventListener('click',()=>{
   rebuildFilter(); renderPage();
   const done=allResults.filter(r=>r.status!=='Checking').length;
   modal(
-    lang==='ru'?'■ СТОП':'■ STOPPED',
-    `${lang==='ru'?'Проверено':'Checked'}: ${done} / ${allResults.length}\n${lang==='ru'?'Рабочих':'Working'}: ${allResults.filter(r=>r.status==='Available').length}`,
+    t('stopped'),
+    `${t('checked')}: ${done} / ${allResults.length}\n${t('working')}: ${allResults.filter(r=>r.status==='Available').length}`,
     'inf'
   );
 });
 
 /* ══════════════ REFRESH ══════════════ */
 document.getElementById('btnRefresh').addEventListener('click', async ()=>{
-  if(!allResults.length){modal(lang==='ru'?'ОШИБКА':'ERROR',lang==='ru'?'Нет данных':'No data','err');return;}
+  if(!allResults.length){modal(t('error'),lang==='ru'?'Нет данных':'No data','err');return;}
   stopFlag=false;
   allResults.forEach(r=>r.status='Checking');
   document.getElementById('btnRefresh').disabled=true;
@@ -1770,7 +2246,7 @@ document.getElementById('btnRefresh').addEventListener('click', async ()=>{
   await runPool(allResults,conc,async(item,i)=>{
     allResults[i].status=await checkLink(item.host)?'Available':'Unavailable';
     const now=Date.now();
-    if(now-uiT>250){uiT=now;setProg(allResults.filter(r=>r.status!=='Checking').length/allResults.length*100);updateStats();}
+    if(now-uiT>200){uiT=now;setProg(allResults.filter(r=>r.status!=='Checking').length/allResults.length*100);updateStats();}
   });
 
   rebuildFilter(); updateStats(); renderPage(); saveStore();
@@ -1778,8 +2254,8 @@ document.getElementById('btnRefresh').addEventListener('click', async ()=>{
   document.getElementById('btnRefresh').disabled=false;
   document.getElementById('btnStop').disabled=true;
   modal(
-    lang==='ru'?'✔ ОБНОВЛЕНО':'✔ REFRESHED',
-    `${lang==='ru'?'Рабочих':'Working'}: ${allResults.filter(r=>r.status==='Available').length} / ${allResults.length}`,
+    t('refreshed'),
+    `${t('working')}: ${allResults.filter(r=>r.status==='Available').length} / ${allResults.length}`,
     'ok'
   );
 });
@@ -1795,6 +2271,9 @@ document.getElementById('btnClear').addEventListener('click',()=>{
   document.getElementById('blobPanel').style.display='none';
   hideProg();
   if(window._blobUrl){URL.revokeObjectURL(window._blobUrl);window._blobUrl=null;}
+  // Clear domain queues
+  domainQueue = {};
+  checkedDomains.clear();
 });
 
 /* ══════════════ QUICK TEST ══════════════ */
@@ -1802,14 +2281,13 @@ document.getElementById('btnTest').addEventListener('click', async ()=>{
   const pool = allResults.filter(r=>r.status==='Available');
   if(pool.length < 1){
     modal(
-      lang==='ru'?'ТЕСТ':'TEST',
-      lang==='ru'?'Сначала запустите проверку — нет рабочих каналов для теста.':'Run check first — no working channels to test.',
+      t('test_title'),
+      t('check_first'),
       'inf'
     );
     return;
   }
 
-  // Берём 3 рандомных рабочих канала
   const shuffled = [...pool].sort(()=>Math.random()-.5).slice(0,3);
 
   const rows = shuffled.map(r=>`
@@ -1820,8 +2298,8 @@ document.getElementById('btnTest').addEventListener('click', async ()=>{
     </div>`).join('');
 
   modal(
-    lang==='ru'?'🧪 БЫСТРЫЙ ТЕСТ':'🧪 QUICK TEST',
-    lang==='ru'?'3 случайных рабочих канала.\nНажми ▶ чтобы открыть в мини-плеере:':'3 random working channels.\nPress ▶ to open in mini player:',
+    t('test_title'),
+    t('test_msg'),
     'amb',
     `<div class="test-channels">${rows}</div>`
   );
@@ -1831,7 +2309,7 @@ document.getElementById('btnTest').addEventListener('click', async ()=>{
 document.getElementById('btnExport').addEventListener('click',()=>{
   const fmt  = document.getElementById('exportFmt').value;
   const avail= allResults.filter(r=>r.status==='Available');
-  if(!avail.length){modal(lang==='ru'?'ОШИБКА':'ERROR',lang==='ru'?'Нет рабочих':'No working channels','err');return;}
+  if(!avail.length){modal(t('error'),t('no_working'),'err');return;}
 
   let content, filename, mime;
   if(fmt==='m3u'||fmt==='txt'){
@@ -1849,11 +2327,11 @@ document.getElementById('btnExport').addEventListener('click',()=>{
   const blob=new Blob([content],{type:mime});
   const blobUrl=URL.createObjectURL(blob);
 
-  // Скачивание
+  // Download
   const a=Object.assign(document.createElement('a'),{href:blobUrl,download:filename,style:'display:none'});
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 
-  // Blob ссылка для VLC/Kodi
+  // Blob link for VLC/Kodi
   if(window._blobUrl) URL.revokeObjectURL(window._blobUrl);
   window._blobUrl = blobUrl;
   document.getElementById('blobPanel').style.display='block';
@@ -1861,8 +2339,8 @@ document.getElementById('btnExport').addEventListener('click',()=>{
   document.getElementById('blobLink').textContent=blobUrl;
 
   modal(
-    lang==='ru'?'⬇ ЭКСПОРТ':'⬇ EXPORT',
-    `${filename}\n${avail.length} ${lang==='ru'?'рабочих каналов':'working channels'}\n\n${lang==='ru'?'Blob-ссылка создана — вставь в VLC → Медиа → Открыть URL':'Blob link ready — paste in VLC → Media → Open URL'}`,
+    t('export_title'),
+    `${filename}\n${avail.length} ${t('channels')}\n\n${t('blob_ready')}`,
     'ok'
   );
 });
@@ -1870,13 +2348,7 @@ document.getElementById('btnExport').addEventListener('click',()=>{
 document.getElementById('btnCopyBlob').addEventListener('click',()=>{
   const url=document.getElementById('blobLink').href;
   if(!url||url==='#') return;
-  navigator.clipboard.writeText(url).then(()=>{
-    modal(lang==='ru'?'📋 СКОПИРОВАНО':'📋 COPIED',lang==='ru'?'Ссылка в буфере.\nВставь в VLC: Медиа → Открыть URL':'Link copied.\nPaste in VLC: Media → Open URL','ok');
-  }).catch(()=>{
-    const ta=Object.assign(document.createElement('textarea'),{value:url,style:'position:fixed;opacity:0'});
-    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    modal(lang==='ru'?'📋 СКОПИРОВАНО':'📋 COPIED',lang==='ru'?'Скопировано!':'Copied!','ok');
-  });
+  copyUrl(url);
 });
 
 document.getElementById('btnRevokeBlob').addEventListener('click',()=>{
@@ -1893,16 +2365,16 @@ document.getElementById('btnPdf').addEventListener('click',()=>{
   const doc=new jsPDF();
   const ok=allResults.filter(r=>r.status==='Available').length;
   const tot=allResults.length;
-  doc.setFont('helvetica','bold'); doc.setFontSize(22);
+  doc.setFont('helvetica','bold'); doc.setFontSize(20);
   doc.text('INDEX33 // IPTV REPORT',10,20);
-  doc.setFont('helvetica','normal'); doc.setFontSize(12);
-  doc.text(`Date: ${new Date().toLocaleString()}`,10,35);
-  doc.text(`Time elapsed: ${document.getElementById('timerEl').textContent}`,10,45);
-  doc.text(`Total: ${tot}`,10,55);
-  doc.text(`Working: ${ok}`,10,65);
-  doc.text(`Dead: ${tot-ok}`,10,75);
-  doc.text(`Favorites: ${favorites.length}`,10,85);
-  doc.text(`Groups: ${[...new Set(allResults.map(r=>r.group))].length}`,10,95);
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  doc.text(`Date: ${new Date().toLocaleString()}`,10,33);
+  doc.text(`Elapsed: ${document.getElementById('timerEl').textContent}`,10,43);
+  doc.text(`Total: ${tot}`,10,53);
+  doc.text(`Working: ${ok}`,10,63);
+  doc.text(`Dead: ${tot-ok}`,10,73);
+  doc.text(`Favorites: ${favorites.length}`,10,83);
+  doc.text(`Groups: ${[...new Set(allResults.map(r=>r.group))].length}`,10,93);
   doc.save('index33_report.pdf');
 });
 
@@ -1910,7 +2382,7 @@ document.getElementById('btnPdf').addEventListener('click',()=>{
 document.getElementById('btnCompare').addEventListener('click', async ()=>{
   const fi=document.getElementById('cmpFile');
   if(!fi.files.length||!allResults.length){
-    modal(lang==='ru'?'ОШИБКА':'ERROR',lang==='ru'?'Загрузите основной плейлист и второй файл':'Load main playlist and second file first','err');
+    modal(t('error'),lang==='ru'?'Загрузите оба плейлиста':'Load both playlists first','err');
     return;
   }
   const content=await readFile(fi.files[0]);
@@ -1923,22 +2395,22 @@ document.getElementById('btnCompare').addEventListener('click', async ()=>{
     html+=`<tr>
       <td title="${E(r.name)}">${E(r.name)}</td>
       <td style="color:var(--txt2)">${E(r.group)}</td>
-      <td><span class="badge ${dup?'b-chk':'b-ok'}">${dup?(lang==='ru'?'ДУБЛИКАТ':'DUPLICATE'):(lang==='ru'?'УНИКАЛЬНЫЙ':'UNIQUE')}</span></td>
-      <td style="color:var(--txt2)">${lang==='ru'?'2-й плейлист':'2nd playlist'}</td>
+      <td><span class="badge ${dup?'b-chk':'b-ok'}">${dup?t('duplicate'):t('unique_item')}</span></td>
+      <td style="color:var(--txt2)">${t('2nd_playlist')}</td>
     </tr>`;
   }
   document.getElementById('cmpTbody').innerHTML=html;
   document.getElementById('cmpWrap').style.display='block';
   modal(
-    lang==='ru'?'⚖ СРАВНЕНИЕ':'⚖ COMPARE',
-    `${lang==='ru'?'Первый':'First'}: ${allResults.length}\n${lang==='ru'?'Второй':'Second'}: ${second.length}\n${lang==='ru'?'Дублей':'Dupes'}: ${second.filter(r=>firstSet.has(r.host)).length}\n${lang==='ru'?'Уникальных':'Unique'}: ${second.filter(r=>!firstSet.has(r.host)).length}`,
+    t('compare_title'),
+    `${t('first')}: ${allResults.length}\n${t('second')}: ${second.length}\n${t('dupes')}: ${second.filter(r=>firstSet.has(r.host)).length}\n${t('unique')}: ${second.filter(r=>!firstSet.has(r.host)).length}`,
     'inf'
   );
 });
 
 /* ══════════════════════════════════════
-   МИНИ-ПЛЕЕР
-   Перетаскиваемый, HLS поддержка
+   MINI-PLAYER: Quick Preview
+   Draggable, resizable, HLS support, ESC to close
 ══════════════════════════════════════ */
 let miniHlsInst = null;
 
@@ -1948,17 +2420,17 @@ function openMini(url, name) {
   const st    = document.getElementById('miniStatus');
   const title = document.getElementById('miniTitle');
 
-  // Стоп предыдущий
+  // Stop previous
   video.pause();
   if(miniHlsInst){miniHlsInst.destroy();miniHlsInst=null;}
   video.src=''; video.load();
 
   title.textContent = name||url;
   st.className='mini-status load';
-  st.textContent = lang==='ru'?'Загрузка...':'Loading...';
+  st.textContent = t('loading');
   box.classList.add('show');
 
-  const isHLS = url.includes('.m3u8');
+  const isHLS = url.includes('.m3u8') || url.includes('application/vnd.apple.mpegurl');
 
   if(isHLS && typeof Hls!=='undefined' && Hls.isSupported()){
     miniHlsInst=new Hls({enableWorker:true,lowLatencyMode:true});
@@ -1966,13 +2438,13 @@ function openMini(url, name) {
     miniHlsInst.attachMedia(video);
     miniHlsInst.on(Hls.Events.MANIFEST_PARSED,()=>{
       st.className='mini-status ok';
-      st.textContent=lang==='ru'?'✔ Воспроизводится':'✔ Playing';
+      st.textContent = t('playing');
       video.play().catch(()=>{});
     });
     miniHlsInst.on(Hls.Events.ERROR,(_,d)=>{
       if(d.fatal){
         st.className='mini-status err';
-        st.textContent=lang==='ru'?'✕ Ошибка потока':'✕ Stream error';
+        st.textContent = t('stream_error');
         miniHlsInst.destroy(); miniHlsInst=null;
       }
     });
@@ -1980,37 +2452,42 @@ function openMini(url, name) {
     video.src=url;
     video.oncanplay=()=>{
       st.className='mini-status ok';
-      st.textContent=lang==='ru'?'✔ Воспроизводится':'✔ Playing';
+      st.textContent = t('playing');
     };
     video.onerror=()=>{
       st.className='mini-status err';
-      st.textContent=lang==='ru'?'✕ Не воспроизводится':'✕ Cannot play';
+      st.textContent = t('cannot_play');
     };
     video.play().catch(()=>{});
   }
 }
-
 window.openMini = openMini;
 
-document.getElementById('miniClose').addEventListener('click',()=>{
-  const video=document.getElementById('miniVideo');
-  video.pause();
-  if(miniHlsInst){miniHlsInst.destroy();miniHlsInst=null;}
-  video.src='';
-  document.getElementById('miniPlayer').classList.remove('show');
-});
-
-document.getElementById('miniExpand').addEventListener('click',()=>{
+// Mini player controls
+document.getElementById('miniClose').addEventListener('click', closeMini);
+document.getElementById('miniExpand').addEventListener('click', ()=>{
   const video=document.getElementById('miniVideo');
   const src=video.src||'';
   const name=document.getElementById('miniTitle').textContent;
-  // Закрываем мини, открываем полный
+  closeMini();
+  openFull(src,name);
+});
+document.getElementById('miniExt').addEventListener('click', ()=>{
+  const url = document.getElementById('miniVideo').src;
+  if(url) openExtUrl(url);
+});
+document.getElementById('miniCopy').addEventListener('click', ()=>{
+  const url = document.getElementById('miniVideo').src;
+  if(url) copyUrl(url);
+});
+
+function closeMini() {
+  const video=document.getElementById('miniVideo');
   video.pause();
   if(miniHlsInst){miniHlsInst.destroy();miniHlsInst=null;}
   video.src='';
   document.getElementById('miniPlayer').classList.remove('show');
-  openFull(src,name);
-});
+}
 
 /* ══════════════ FULL PLAYER ══════════════ */
 let fullHlsInst = null;
@@ -2023,7 +2500,7 @@ function openFull(url, name) {
   if(fullHlsInst){fullHlsInst.destroy();fullHlsInst=null;}
   video.src=''; video.load();
 
-  if(url.includes('.m3u8') && typeof Hls!=='undefined' && Hls.isSupported()){
+  if((url.includes('.m3u8') || url.includes('application/vnd.apple.mpegurl')) && typeof Hls!=='undefined' && Hls.isSupported()){
     fullHlsInst=new Hls({enableWorker:true,lowLatencyMode:true});
     fullHlsInst.loadSource(url); fullHlsInst.attachMedia(video);
     fullHlsInst.on(Hls.Events.MANIFEST_PARSED,()=>{box.classList.add('show');video.play().catch(()=>{});});
@@ -2036,71 +2513,82 @@ function openFull(url, name) {
   }
 }
 
-document.getElementById('fpClose').addEventListener('click',()=>{
+function closeFull() {
   const video=document.getElementById('fullVideo');
   video.pause();
   if(fullHlsInst){fullHlsInst.destroy();fullHlsInst=null;}
   video.src='';
   document.getElementById('fullPlayer').classList.remove('show');
-});
+}
+
+document.getElementById('fpClose').addEventListener('click', closeFull);
 
 /* ══════════════ EXTERNAL ══════════════ */
 function openExtUrl(url){ window.open(url,'_blank'); }
 window.openExtUrl=openExtUrl;
 
-/* ══════════════ DRAG MINI PLAYER ══════════════ */
+/* ══════════════ DRAG MINI PLAYER (Touch + Mouse) ══════════════ */
 (function(){
   const box = document.getElementById('miniPlayer');
   const hdr = document.getElementById('miniDragHdr');
   let ox=0,oy=0,bx=0,by=0,dragging=false;
 
-  hdr.addEventListener('mousedown',e=>{
+  function startDrag(e) {
     if(e.target.closest('.mini-btn')) return;
     dragging=true;
-    ox=e.clientX; oy=e.clientY;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    ox=clientX; oy=clientY;
     const rect=box.getBoundingClientRect();
     bx=rect.left; by=rect.top;
     box.style.transition='none';
-    e.preventDefault();
-  });
+    if(!e.touches) e.preventDefault();
+  }
 
-  document.addEventListener('mousemove',e=>{
+  function onDrag(e) {
     if(!dragging) return;
-    const dx=e.clientX-ox; const dy=e.clientY-oy;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx=clientX-ox; const dy=clientY-oy;
     box.style.right='auto'; box.style.bottom='auto';
     box.style.left=Math.max(0,bx+dx)+'px';
     box.style.top =Math.max(0,by+dy)+'px';
-  });
+    if(!e.touches) e.preventDefault();
+  }
 
-  document.addEventListener('mouseup',()=>{ dragging=false; });
+  function endDrag() { dragging=false; }
 
-  // Touch
-  hdr.addEventListener('touchstart',e=>{
-    if(e.target.closest('.mini-btn')) return;
-    const t=e.touches[0];
-    dragging=true; ox=t.clientX; oy=t.clientY;
-    const rect=box.getBoundingClientRect(); bx=rect.left; by=rect.top;
-    box.style.transition='none';
-  },{passive:true});
+  hdr.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
 
-  document.addEventListener('touchmove',e=>{
-    if(!dragging) return;
-    const t=e.touches[0];
-    const dx=t.clientX-ox; const dy=t.clientY-oy;
-    box.style.right='auto'; box.style.bottom='auto';
-    box.style.left=Math.max(0,bx+dx)+'px';
-    box.style.top =Math.max(0,by+dy)+'px';
-  },{passive:true});
-
-  document.addEventListener('touchend',()=>{ dragging=false; });
+  hdr.addEventListener('touchstart', startDrag, {passive:false});
+  document.addEventListener('touchmove', onDrag, {passive:false});
+  document.addEventListener('touchend', endDrag);
 })();
+
+/* ══════════════ KEYBOARD SHORTCUTS ══════════════ */
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') {
+    if(document.getElementById('miniPlayer').classList.contains('show')) {
+      closeMini();
+    } else if(document.getElementById('fullPlayer').classList.contains('show')) {
+      closeFull();
+    } else if(document.getElementById('modal').classList.contains('show')) {
+      document.getElementById('modal').classList.remove('show');
+    }
+  }
+});
 
 /* ══════════════ INIT ══════════════ */
 (function(){
-  lang = localStorage.getItem('i33_lang') || 'ru';
   setLang(lang);
   loadStore();
+  
+  // Show CORS warning on load if proxy not enabled
+  document.getElementById('corsWarning').style.display = 
+    document.getElementById('useCorsProxy').checked ? 'none' : 'block';
 })();
 </script>
 </body>
-  </html>
+</html>
